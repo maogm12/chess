@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" aria-label="white knight">
+<path d="M12.7 35.9 Q14.9 31.6 18.9 27.1 L14.3 28.6 Q9.2 30.1 6.6 25.4 Q5.1 22.3 8.6 18.8 L17 12.9 L20.5 5.0 Q21.3 3.4 22.9 5.1 L28.3 11.8 Q36.1 13 39.1 20.5 Q41.6 26.8 39.1 35.9 Z M18.0 20.0 A1.7 1.7 0 1 0 21.4 20.0 A1.7 1.7 0 1 0 18.0 20.0 Z M29.6 14.6 Q35.0 21.1 35.0 28.8 L33.0 29.0 Q32.7 22.0 27.9 16.2 Z" fill="#FFF8EB" fill-rule="evenodd"/>
+  <path d="M12.7 35.9 Q14.9 31.6 18.9 27.1 L14.3 28.6 Q9.2 30.1 6.6 25.4 Q5.1 22.3 8.6 18.8 L17 12.9 L20.5 5.0 Q21.3 3.4 22.9 5.1 L28.3 11.8 Q36.1 13 39.1 20.5 Q41.6 26.8 39.1 35.9 Z" fill="none" stroke="#24211F" stroke-width="1.6" stroke-linejoin="round"/>
+  <circle cx="19.7" cy="20" r="1.55" fill="#24211F"/>
+  <path d="M28.7 15.4 Q33.6 21.5 34 28.7" fill="none" stroke="#24211F" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M10.5 34.8 H37.5 Q40 34.8 40 37.0 V38.5 H8 V37 Q8 34.8 10.5 34.8 Z" fill="#FFF8EB" stroke="#24211F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M6.6 40.2 H41.4 Q43 40.2 43 42.1 V44.2 H5 V42.1 Q5 40.2 6.6 40.2 Z" fill="#FFF8EB" stroke="#24211F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

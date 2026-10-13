@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" aria-label="black pawn">
+<g transform="translate(-0.48 -0.48) scale(1.02)">
+  <circle cx="24" cy="14.5" r="9.7" fill="#24211F"/>
+  <rect x="15.5" y="25.1" width="17" height="3.6" rx="1.8" fill="#24211F"/>
+  <path d="M18.2 30 H29.8 Q30.5 32.6 35.8 35.9 H12.2 Q17.5 32.6 18.2 30 Z" fill="#24211F"/>
+  <path d="M10.5 34.8 H37.5 Q40 34.8 40 37.0 V38.5 H8 V37 Q8 34.8 10.5 34.8 Z" fill="#24211F"/>
+  <path d="M6.6 40.2 H41.4 Q43 40.2 43 42.1 V44.2 H5 V42.1 Q5 40.2 6.6 40.2 Z" fill="#24211F"/>
+  </g>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" aria-label="white bishop">
+<path d="M24 8.1 C31.1 11.9 35.5 17.8 33.1 23 Q30.6 27.4 24 27.5 Q17.4 27.4 14.9 23 C12.5 17.8 16.9 11.9 24 8.1 Z M28.7 14.3 L30.8 16.3 L21.5 24.7 L19.4 22.8 Z" fill="#FFF8EB" fill-rule="evenodd"/>
+  <path d="M24 8.1 C31.1 11.9 35.5 17.8 33.1 23 Q30.6 27.4 24 27.5 Q17.4 27.4 14.9 23 C12.5 17.8 16.9 11.9 24 8.1 Z" fill="none" stroke="#24211F" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M29.7 15.2 L20.5 23.8" fill="none" stroke="#24211F" stroke-width="1.4" stroke-linecap="round"/>
+  <circle cx="24" cy="5.7" r="2.8" fill="#FFF8EB" stroke="#24211F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="15.6" y="28.8" width="16.8" height="3.4" rx="1.7" fill="#FFF8EB" stroke="#24211F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M18.4 33.2 H29.6 L35.7 35.9 H12.3 Z" fill="#FFF8EB" stroke="#24211F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M10.5 34.8 H37.5 Q40 34.8 40 37.0 V38.5 H8 V37 Q8 34.8 10.5 34.8 Z" fill="#FFF8EB" stroke="#24211F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M6.6 40.2 H41.4 Q43 40.2 43 42.1 V44.2 H5 V42.1 Q5 40.2 6.6 40.2 Z" fill="#FFF8EB" stroke="#24211F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

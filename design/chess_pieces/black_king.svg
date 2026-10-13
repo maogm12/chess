@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" aria-label="black king">
+<g transform="translate(-0.48 -0.48) scale(1.02)">
+  <path d="M21.3 3.4 H26.7 V8 H31 V12.6 H26.7 V14.2 H31.4 Q34.5 14.2 35.1 17.8 H12.9 Q13.5 14.2 16.6 14.2 H21.3 V12.6 H17 V8 H21.3 Z" fill="#24211F"/>
+  <rect x="15.2" y="19.4" width="17.6" height="3.5" rx="1.7" fill="#24211F"/>
+  <path d="M17.3 24.4 H30.7 Q30.5 29.6 36.1 35.9 H11.9 Q17.5 29.6 17.3 24.4 Z" fill="#24211F"/>
+  <path d="M10.5 34.8 H37.5 Q40 34.8 40 37.0 V38.5 H8 V37 Q8 34.8 10.5 34.8 Z" fill="#24211F"/>
+  <path d="M6.6 40.2 H41.4 Q43 40.2 43 42.1 V44.2 H5 V42.1 Q5 40.2 6.6 40.2 Z" fill="#24211F"/>
+  </g>
+</svg>
