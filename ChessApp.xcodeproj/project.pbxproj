@@ -1,0 +1,497 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* ChessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* ChessApp.swift */; };
+		A10000000000000000000002 /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* HomeViewController.swift */; };
+		A10000000000000000000003 /* ChessBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* ChessBoardView.swift */; };
+		A10000000000000000000004 /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000004 /* GameViewModel.swift */; };
+        AB0000000000000000000001 = {isa = PBXBuildFile; fileRef = AC0000000000000000000001; };
+        AB0000000000000000000003 = {isa = PBXBuildFile; fileRef = AC0000000000000000000003; };
+		A20000000000000000000001 /* ArasanEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001 /* ArasanEngine.swift */; };
+		A20000000000000000000002 /* ArasanBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000002 /* ArasanBridge.mm */; };
+		A20000000000000000000100 /* attacks.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000100 /* attacks.cpp */; };
+		A20000000000000000000101 /* bench.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000101 /* bench.cpp */; };
+		A20000000000000000000102 /* bhash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000102 /* bhash.cpp */; };
+		A20000000000000000000103 /* bitprobe.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000103 /* bitprobe.cpp */; };
+		A20000000000000000000104 /* bitutil.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000104 /* bitutil.cpp */; };
+		A20000000000000000000105 /* board.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000105 /* board.cpp */; };
+		A20000000000000000000106 /* boardio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000106 /* boardio.cpp */; };
+		A20000000000000000000107 /* bookread.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000107 /* bookread.cpp */; };
+		A20000000000000000000108 /* bookwrit.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000108 /* bookwrit.cpp */; };
+		A20000000000000000000109 /* calctime.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000109 /* calctime.cpp */; };
+		A20000000000000000000110 /* chess.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000110 /* chess.cpp */; };
+		A20000000000000000000111 /* chessio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000111 /* chessio.cpp */; };
+		A20000000000000000000112 /* eco.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000112 /* eco.cpp */; };
+		A20000000000000000000113 /* epdrec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000113 /* epdrec.cpp */; };
+		A20000000000000000000114 /* evaluate.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000114 /* evaluate.cpp */; };
+		A20000000000000000000115 /* globals.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000115 /* globals.cpp */; };
+		A20000000000000000000116 /* hash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000116 /* hash.cpp */; };
+		A20000000000000000000117 /* input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000117 /* input.cpp */; };
+		A20000000000000000000118 /* learn.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000118 /* learn.cpp */; };
+		A20000000000000000000119 /* legal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000119 /* legal.cpp */; };
+		A20000000000000000000120 /* material.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000120 /* material.cpp */; };
+		A20000000000000000000121 /* movearr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000121 /* movearr.cpp */; };
+		A20000000000000000000122 /* movegen.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000122 /* movegen.cpp */; };
+		A20000000000000000000123 /* notation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000123 /* notation.cpp */; };
+		A20000000000000000000124 /* options.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000124 /* options.cpp */; };
+		A20000000000000000000125 /* protocol.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000125 /* protocol.cpp */; };
+		A20000000000000000000126 /* scoring.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000126 /* scoring.cpp */; };
+		A20000000000000000000127 /* search.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000127 /* search.cpp */; };
+		A20000000000000000000128 /* searchc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000128 /* searchc.cpp */; };
+		A20000000000000000000129 /* see.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000129 /* see.cpp */; };
+		A20000000000000000000130 /* stats.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000130 /* stats.cpp */; };
+		A20000000000000000000131 /* syzygy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000131 /* syzygy.cpp */; };
+		A20000000000000000000132 /* tester.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000132 /* tester.cpp */; };
+		A20000000000000000000133 /* threadc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000133 /* threadc.cpp */; };
+		A20000000000000000000134 /* threadp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000134 /* threadp.cpp */; };
+		A20000000000000000000203 /* tbprobe.c in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000203 /* tbprobe.c */; settings = {COMPILER_FLAGS = "-x c++"; }; };
+		A20000000000000000000901 /* arasanv8-20260906.nnue in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000201 /* arasanv8-20260906.nnue */; };
+		A20000000000000000000902 /* LICENSE-Arasan.txt in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000202 /* LICENSE-Arasan.txt */; };
+		A10000000000000000000005 /* UIKitSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* UIKitSupport.swift */; };
+		A10000000000000000000006 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000006 /* GameViewController.swift */; };
+		A10000000000000000000007 /* HistoryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000007 /* HistoryViewController.swift */; };
+		A10000000000000000000008 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008 /* SettingsViewController.swift */; };
+		A10000000000000000000020 /* ChessPieceArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* ChessPieceArt.swift */; };
+		A1000000000000000000021 /* ChessPosition.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000021 /* ChessPosition.swift */; };
+		A1000000000000000000022 /* PuzzleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000022 /* PuzzleViews.swift */; };
+		A1000000000000000000023 /* PuzzleEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000023 /* PuzzleEditorViewController.swift */; };
+		A1000000000000000000024 /* PuzzleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000024 /* PuzzleViewController.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B10000000000000000000001 /* ChessApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessApp.swift; sourceTree = "<group>"; };
+		B10000000000000000000002 /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
+		B10000000000000000000003 /* ChessBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessBoardView.swift; sourceTree = "<group>"; };
+		B10000000000000000000004 /* GameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewModel.swift; sourceTree = "<group>"; };
+		B10000000000000000000011 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
+		B10000000000000000000012 /* LocalChess.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LocalChess.app; sourceTree = BUILT_PRODUCTS_DIR; };
+        AC0000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests/GameTests.swift; sourceTree = SOURCE_ROOT; };
+        AC0000000000000000000002 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = QuietChessTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+        AC0000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B20000000000000000000001 /* ArasanEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArasanEngine.swift; sourceTree = "<group>"; };
+		B20000000000000000000002 /* ArasanBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ArasanBridge.mm; sourceTree = "<group>"; };
+		B20000000000000000000003 /* ArasanBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ArasanBridge.h; sourceTree = "<group>"; };
+		B20000000000000000000100 /* attacks.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/attacks.cpp; sourceTree = "<group>"; };
+		B20000000000000000000101 /* bench.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/bench.cpp; sourceTree = "<group>"; };
+		B20000000000000000000102 /* bhash.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/bhash.cpp; sourceTree = "<group>"; };
+		B20000000000000000000103 /* bitprobe.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/bitprobe.cpp; sourceTree = "<group>"; };
+		B20000000000000000000104 /* bitutil.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/bitutil.cpp; sourceTree = "<group>"; };
+		B20000000000000000000105 /* board.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/board.cpp; sourceTree = "<group>"; };
+		B20000000000000000000106 /* boardio.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/boardio.cpp; sourceTree = "<group>"; };
+		B20000000000000000000107 /* bookread.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/bookread.cpp; sourceTree = "<group>"; };
+		B20000000000000000000108 /* bookwrit.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/bookwrit.cpp; sourceTree = "<group>"; };
+		B20000000000000000000109 /* calctime.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/calctime.cpp; sourceTree = "<group>"; };
+		B20000000000000000000110 /* chess.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/chess.cpp; sourceTree = "<group>"; };
+		B20000000000000000000111 /* chessio.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/chessio.cpp; sourceTree = "<group>"; };
+		B20000000000000000000112 /* eco.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/eco.cpp; sourceTree = "<group>"; };
+		B20000000000000000000113 /* epdrec.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/epdrec.cpp; sourceTree = "<group>"; };
+		B20000000000000000000114 /* evaluate.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/evaluate.cpp; sourceTree = "<group>"; };
+		B20000000000000000000115 /* globals.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/globals.cpp; sourceTree = "<group>"; };
+		B20000000000000000000116 /* hash.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/hash.cpp; sourceTree = "<group>"; };
+		B20000000000000000000117 /* input.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/input.cpp; sourceTree = "<group>"; };
+		B20000000000000000000118 /* learn.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/learn.cpp; sourceTree = "<group>"; };
+		B20000000000000000000119 /* legal.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/legal.cpp; sourceTree = "<group>"; };
+		B20000000000000000000120 /* material.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/material.cpp; sourceTree = "<group>"; };
+		B20000000000000000000121 /* movearr.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/movearr.cpp; sourceTree = "<group>"; };
+		B20000000000000000000122 /* movegen.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/movegen.cpp; sourceTree = "<group>"; };
+		B20000000000000000000123 /* notation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/notation.cpp; sourceTree = "<group>"; };
+		B20000000000000000000124 /* options.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/options.cpp; sourceTree = "<group>"; };
+		B20000000000000000000125 /* protocol.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/protocol.cpp; sourceTree = "<group>"; };
+		B20000000000000000000126 /* scoring.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/scoring.cpp; sourceTree = "<group>"; };
+		B20000000000000000000127 /* search.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/search.cpp; sourceTree = "<group>"; };
+		B20000000000000000000128 /* searchc.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/searchc.cpp; sourceTree = "<group>"; };
+		B20000000000000000000129 /* see.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/see.cpp; sourceTree = "<group>"; };
+		B20000000000000000000130 /* stats.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/stats.cpp; sourceTree = "<group>"; };
+		B20000000000000000000131 /* syzygy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/syzygy.cpp; sourceTree = "<group>"; };
+		B20000000000000000000132 /* tester.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/tester.cpp; sourceTree = "<group>"; };
+		B20000000000000000000133 /* threadc.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/threadc.cpp; sourceTree = "<group>"; };
+		B20000000000000000000134 /* threadp.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vendor/Arasan/src/threadp.cpp; sourceTree = "<group>"; };
+		B20000000000000000000203 /* tbprobe.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = Vendor/Arasan/src/syzygy/src/tbprobe.c; sourceTree = "<group>"; };
+		B20000000000000000000201 /* arasanv8-20260906.nnue */ = {isa = PBXFileReference; lastKnownFileType = file; path = arasanv8-20260906.nnue; sourceTree = "<group>"; };
+		B20000000000000000000202 /* LICENSE-Arasan.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE-Arasan.txt; sourceTree = "<group>"; };
+		B10000000000000000000005 /* UIKitSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIKitSupport.swift; sourceTree = "<group>"; };
+		B10000000000000000000006 /* GameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewController.swift; sourceTree = "<group>"; };
+		B10000000000000000000007 /* HistoryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryViewController.swift; sourceTree = "<group>"; };
+		B10000000000000000000008 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
+		B10000000000000000000020 /* ChessPieceArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessPieceArt.swift; sourceTree = "<group>"; };
+		B1000000000000000000021 /* ChessPosition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessPosition.swift; sourceTree = "<group>"; };
+		B1000000000000000000022 /* PuzzleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleViews.swift; sourceTree = "<group>"; };
+		B1000000000000000000023 /* PuzzleEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleEditorViewController.swift; sourceTree = "<group>"; };
+		B1000000000000000000024 /* PuzzleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleViewController.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C10000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D10000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				D10000000000000000000002 /* ChessApp */,
+                AC0000000000000000000001,
+				D10000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D10000000000000000000002 /* ChessApp */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000001 /* ChessApp.swift */,
+                AC0000000000000000000003,
+				B10000000000000000000002 /* HomeViewController.swift */,
+				B10000000000000000000003 /* ChessBoardView.swift */,
+				B10000000000000000000004 /* GameViewModel.swift */,
+				B10000000000000000000020 /* ChessPieceArt.swift */,
+				B1000000000000000000021 /* ChessPosition.swift */,
+				B1000000000000000000022 /* PuzzleViews.swift */,
+				B1000000000000000000023 /* PuzzleEditorViewController.swift */,
+				B1000000000000000000024 /* PuzzleViewController.swift */,
+				B10000000000000000000008 /* SettingsViewController.swift */,
+				B10000000000000000000007 /* HistoryViewController.swift */,
+				B10000000000000000000006 /* GameViewController.swift */,
+				B10000000000000000000005 /* UIKitSupport.swift */,
+				B20000000000000000000001 /* ArasanEngine.swift */,
+				B20000000000000000000002 /* ArasanBridge.mm */,
+				B20000000000000000000003 /* ArasanBridge.h */,
+				B20000000000000000000100 /* attacks.cpp */,
+				B20000000000000000000101 /* bench.cpp */,
+				B20000000000000000000102 /* bhash.cpp */,
+				B20000000000000000000103 /* bitprobe.cpp */,
+				B20000000000000000000104 /* bitutil.cpp */,
+				B20000000000000000000105 /* board.cpp */,
+				B20000000000000000000106 /* boardio.cpp */,
+				B20000000000000000000107 /* bookread.cpp */,
+				B20000000000000000000108 /* bookwrit.cpp */,
+				B20000000000000000000109 /* calctime.cpp */,
+				B20000000000000000000110 /* chess.cpp */,
+				B20000000000000000000111 /* chessio.cpp */,
+				B20000000000000000000112 /* eco.cpp */,
+				B20000000000000000000113 /* epdrec.cpp */,
+				B20000000000000000000114 /* evaluate.cpp */,
+				B20000000000000000000115 /* globals.cpp */,
+				B20000000000000000000116 /* hash.cpp */,
+				B20000000000000000000117 /* input.cpp */,
+				B20000000000000000000118 /* learn.cpp */,
+				B20000000000000000000119 /* legal.cpp */,
+				B20000000000000000000120 /* material.cpp */,
+				B20000000000000000000121 /* movearr.cpp */,
+				B20000000000000000000122 /* movegen.cpp */,
+				B20000000000000000000123 /* notation.cpp */,
+				B20000000000000000000124 /* options.cpp */,
+				B20000000000000000000125 /* protocol.cpp */,
+				B20000000000000000000126 /* scoring.cpp */,
+				B20000000000000000000127 /* search.cpp */,
+				B20000000000000000000128 /* searchc.cpp */,
+				B20000000000000000000129 /* see.cpp */,
+				B20000000000000000000130 /* stats.cpp */,
+				B20000000000000000000131 /* syzygy.cpp */,
+				B20000000000000000000132 /* tester.cpp */,
+				B20000000000000000000133 /* threadc.cpp */,
+				B20000000000000000000134 /* threadp.cpp */,
+				B20000000000000000000203 /* tbprobe.c */,
+				D10000000000000000000004 /* Vendor */,
+			);
+			path = ChessApp;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000012 /* LocalChess.app */,
+                AC0000000000000000000002,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000004 /* Vendor */ = {
+			isa = PBXGroup;
+			children = (
+				D20000000000000000000001 /* Arasan */,
+			);
+			path = Vendor;
+			sourceTree = "<group>";
+		};
+		D20000000000000000000001 /* Arasan */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000201 /* arasanv8-20260906.nnue */,
+				B20000000000000000000202 /* LICENSE-Arasan.txt */,
+			);
+			path = Arasan;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E10000000000000000000001 /* LocalChess */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E10000000000000000000004 /* Build configuration list for PBXNativeTarget "LocalChess" */;
+			buildPhases = (
+				E10000000000000000000002 /* Sources */,
+				C10000000000000000000001 /* Frameworks */,
+				E10000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LocalChess;
+			productName = LocalChess;
+			productReference = B10000000000000000000012 /* LocalChess.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F10000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					E10000000000000000000001 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+				};
+			};
+			buildConfigurationList = F10000000000000000000003 /* Build configuration list for PBXProject "LocalChess" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D10000000000000000000001;
+			productRefGroup = D10000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E10000000000000000000001 /* LocalChess */,
+                AD0000000000000000000001,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E10000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+                A20000000000000000000901 /* arasanv8-20260906.nnue in Resources */,
+                A20000000000000000000902 /* LICENSE-Arasan.txt in Resources */,
+                AB0000000000000000000003,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E10000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* ChessApp.swift in Sources */,
+				A10000000000000000000002 /* HomeViewController.swift in Sources */,
+				A10000000000000000000003 /* ChessBoardView.swift in Sources */,
+				A10000000000000000000004 /* GameViewModel.swift in Sources */,
+				A10000000000000000000020 /* ChessPieceArt.swift in Sources */,
+				A1000000000000000000021 /* ChessPosition.swift in Sources */,
+				A1000000000000000000022 /* PuzzleViews.swift in Sources */,
+				A1000000000000000000023 /* PuzzleEditorViewController.swift in Sources */,
+				A1000000000000000000024 /* PuzzleViewController.swift in Sources */,
+				A10000000000000000000008 /* SettingsViewController.swift in Sources */,
+				A10000000000000000000007 /* HistoryViewController.swift in Sources */,
+				A10000000000000000000006 /* GameViewController.swift in Sources */,
+				A10000000000000000000005 /* UIKitSupport.swift in Sources */,
+				A20000000000000000000001 /* ArasanEngine.swift in Sources */,
+				A20000000000000000000002 /* ArasanBridge.mm in Sources */,
+				A20000000000000000000100 /* attacks.cpp in Sources */,
+				A20000000000000000000101 /* bench.cpp in Sources */,
+				A20000000000000000000102 /* bhash.cpp in Sources */,
+				A20000000000000000000103 /* bitprobe.cpp in Sources */,
+				A20000000000000000000104 /* bitutil.cpp in Sources */,
+				A20000000000000000000105 /* board.cpp in Sources */,
+				A20000000000000000000106 /* boardio.cpp in Sources */,
+				A20000000000000000000107 /* bookread.cpp in Sources */,
+				A20000000000000000000108 /* bookwrit.cpp in Sources */,
+				A20000000000000000000109 /* calctime.cpp in Sources */,
+				A20000000000000000000110 /* chess.cpp in Sources */,
+				A20000000000000000000111 /* chessio.cpp in Sources */,
+				A20000000000000000000112 /* eco.cpp in Sources */,
+				A20000000000000000000113 /* epdrec.cpp in Sources */,
+				A20000000000000000000114 /* evaluate.cpp in Sources */,
+				A20000000000000000000115 /* globals.cpp in Sources */,
+				A20000000000000000000116 /* hash.cpp in Sources */,
+				A20000000000000000000117 /* input.cpp in Sources */,
+				A20000000000000000000118 /* learn.cpp in Sources */,
+				A20000000000000000000119 /* legal.cpp in Sources */,
+				A20000000000000000000120 /* material.cpp in Sources */,
+				A20000000000000000000121 /* movearr.cpp in Sources */,
+				A20000000000000000000122 /* movegen.cpp in Sources */,
+				A20000000000000000000123 /* notation.cpp in Sources */,
+				A20000000000000000000124 /* options.cpp in Sources */,
+				A20000000000000000000125 /* protocol.cpp in Sources */,
+				A20000000000000000000126 /* scoring.cpp in Sources */,
+				A20000000000000000000127 /* search.cpp in Sources */,
+				A20000000000000000000128 /* searchc.cpp in Sources */,
+				A20000000000000000000129 /* see.cpp in Sources */,
+				A20000000000000000000130 /* stats.cpp in Sources */,
+				A20000000000000000000131 /* syzygy.cpp in Sources */,
+				A20000000000000000000132 /* tester.cpp in Sources */,
+				A20000000000000000000133 /* threadc.cpp in Sources */,
+				A20000000000000000000134 /* threadp.cpp in Sources */,
+				A20000000000000000000203 /* tbprobe.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+
+        AD0000000000000000000001 = {isa = PBXNativeTarget; name = QuietChessTests; productName = QuietChessTests; productReference = AC0000000000000000000002; productType = "com.apple.product-type.bundle.unit-test"; buildConfigurationList = AD0000000000000000000002; buildPhases = (AD0000000000000000000003, AD0000000000000000000004); dependencies = (AD0000000000000000000005); buildRules = (); };
+        AD0000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (AD0000000000000000000007, AD0000000000000000000008); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+        AD0000000000000000000003 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (AB0000000000000000000001); runOnlyForDeploymentPostprocessing = 0; };
+        AD0000000000000000000004 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+        AD0000000000000000000005 = {isa = PBXTargetDependency; target = E10000000000000000000001; targetProxy = AD0000000000000000000006; };
+        AD0000000000000000000006 = {isa = PBXContainerItemProxy; containerPortal = F10000000000000000000001; proxyType = 1; remoteGlobalIDString = E10000000000000000000001; remoteInfo = LocalChess; };
+        AD0000000000000000000007 = {isa = XCBuildConfiguration; name = Debug; buildSettings = { GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = com.example.localchess.tests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LocalChess.app/LocalChess"; BUNDLE_LOADER = "$(TEST_HOST)"; SWIFT_OBJC_BRIDGING_HEADER = ""; INFOPLIST_FILE = ""; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; };
+        AD0000000000000000000008 = {isa = XCBuildConfiguration; name = Release; buildSettings = { GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = com.example.localchess.tests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LocalChess.app/LocalChess"; BUNDLE_LOADER = "$(TEST_HOST)"; SWIFT_OBJC_BRIDGING_HEADER = ""; INFOPLIST_FILE = ""; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; };
+/* Begin XCBuildConfiguration section */
+		F20000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ENABLE_TESTABILITY = YES;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
+                SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+                ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+                ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					
+					"$(inherited)",
+					"SIMD",
+					"NEON",
+					"_64BIT",
+					"SYZYGY_TBS",
+					"NETWORK=arasanv8-20260906.nnue",
+														);
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = ("$(SRCROOT)/ChessApp", "$(SRCROOT)/ChessApp/Vendor/Arasan/src", "$(SRCROOT)/ChessApp/Vendor/Arasan/src/nnue");
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				INFOPLIST_KEY_CFBundleDisplayName = "Quiet Chess";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
+				INFOPLIST_FILE = ChessApp/Info.plist;
+                
+                INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+                INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+                MARKETING_VERSION = 1.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"SIMD",
+					"NEON",
+					"_64BIT",
+					"SYZYGY_TBS",
+					"NETWORK=arasanv8-20260906.nnue",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.localchess;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_OBJC_BRIDGING_HEADER = ChessApp/ArasanBridge.h;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F20000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
+                ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"NDEBUG=1",
+					"$(inherited)",
+					"SIMD",
+					"NEON",
+					"_64BIT",
+					"SYZYGY_TBS",
+					"NETWORK=arasanv8-20260906.nnue",
+														);
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = ("$(SRCROOT)/ChessApp", "$(SRCROOT)/ChessApp/Vendor/Arasan/src", "$(SRCROOT)/ChessApp/Vendor/Arasan/src/nnue");
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				INFOPLIST_KEY_CFBundleDisplayName = "Quiet Chess";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
+				INFOPLIST_FILE = ChessApp/Info.plist;
+                
+                INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+                INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+                MARKETING_VERSION = 1.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.localchess;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_OBJC_BRIDGING_HEADER = ChessApp/ArasanBridge.h;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F10000000000000000000003 /* Build configuration list for PBXProject "LocalChess" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F20000000000000000000001 /* Debug */,
+				F20000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E10000000000000000000004 /* Build configuration list for PBXNativeTarget "LocalChess" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F20000000000000000000001 /* Debug */,
+				F20000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F10000000000000000000001 /* Project object */;
+}
