@@ -15,7 +15,9 @@ no signing identity or credentials are committed here.
 ## What works
 
 - Play White or Black against the Arasan bot.
-- A large side selector, new-game action, puzzle library, and inline game history on the home screen.
+- A large side selector, new-game action, puzzle library, and game-history entry on the home screen.
+  Saved games live on a separate History navigation page; opening a game and returning preserves
+  the Home → History → Game navigation stack.
   Home cards use the app's own visual language: theme fills, one shared corner radius, serif
   section headings, and no reference-screenshot chrome such as badge chips, stripes, or arrows.
 - Flat vector piece art from the `design/chess_pieces` icon set: white pieces use an ivory fill with
@@ -125,7 +127,7 @@ Assertions remain enabled in Debug builds.
 ## Structure
 
 - `ChessApp.swift`: UIKit application/scene delegates and background lifecycle.
-- `HomeViewController.swift`: side selection, new game, and inline history.
+- `HomeViewController.swift`: side selection, new game, and entry points for Puzzle and History.
 - `GameViewController.swift`: game controls, countdown, move list, and replay.
 - `PuzzleViewController.swift`: the puzzle library, its tiles, and the tile that opens the editor.
 - `PuzzleEditorViewController.swift`: hand-built positions, square popovers, and side selection.

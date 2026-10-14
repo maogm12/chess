@@ -1,7 +1,7 @@
 import UIKit
 
-final class HomeViewController: GameObservingViewController, UITableViewDataSource, UITableViewDelegate {
-    private let table = UITableView(frame: .zero, style: .plain)
+final class HomeViewController: GameObservingViewController {
+    private let scroll = UIScrollView()
     private let header = UIView()
     private let wordmark = chessSerifLabel("Quiet Chess", size: 21)
     private let settingsButton = UIButton(type: .system)
@@ -10,31 +10,20 @@ final class HomeViewController: GameObservingViewController, UITableViewDataSour
     private let startButton = UIButton(type: .system)
     private let puzzleButton = UIButton(type: .system)
     private let historyButton = UIButton(type: .system)
-    private let historyCount = chessLabel(size: 13, color: QuietChessTheme.slate)
     private let loading = chessLabel("Preparing board…", size: 13, color: QuietChessTheme.slate)
-    private var records: [SavedGame] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
         navigationItem.backButtonTitle = "Home"
-        table.backgroundColor = .clear
-        table.separatorColor = QuietChessTheme.line
-        table.separatorInset = UIEdgeInsets(top: 0, left: 18, bottom: 0, right: 18)
-        table.showsVerticalScrollIndicator = false
-        table.rowHeight = UITableView.automaticDimension
-        table.estimatedRowHeight = 82
-        table.dataSource = self
-        table.delegate = self
-        table.register(HomeGameCell.self, forCellReuseIdentifier: "game")
-        table.tableHeaderView = header
-        view.addSubview(table)
-        table.translatesAutoresizingMaskIntoConstraints = false
+        scroll.showsVerticalScrollIndicator = false
+        scroll.addSubview(header)
+        view.addSubview(scroll)
+        scroll.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            table.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            table.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            table.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            table.widthAnchor.constraint(lessThanOrEqualToConstant: 596),
-            table.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor).withPriority(.defaultHigh)
+            scroll.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            scroll.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
         configureHeader()
         updateView()
@@ -77,26 +66,9 @@ final class HomeViewController: GameObservingViewController, UITableViewDataSour
         puzzleButton.contentHorizontalAlignment = .leading
         puzzleButton.addAction(UIAction { [weak self] _ in self?.openPuzzles() }, for: .touchUpInside)
 
-        let line = UIView()
-        line.backgroundColor = QuietChessTheme.line
-        let historyTitle = chessSerifLabel("Game history", size: 22)
-        [line, historyTitle, historyCount].forEach {
-            $0.isUserInteractionEnabled = false
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            historyButton.addSubview($0)
-        }
-        NSLayoutConstraint.activate([
-            line.topAnchor.constraint(equalTo: historyButton.topAnchor),
-            line.leadingAnchor.constraint(equalTo: historyButton.leadingAnchor),
-            line.trailingAnchor.constraint(equalTo: historyButton.trailingAnchor),
-            line.heightAnchor.constraint(equalToConstant: 1),
-            historyTitle.leadingAnchor.constraint(equalTo: historyButton.leadingAnchor),
-            historyTitle.topAnchor.constraint(equalTo: historyButton.topAnchor, constant: 18),
-            historyCount.trailingAnchor.constraint(equalTo: historyButton.trailingAnchor),
-            historyCount.firstBaselineAnchor.constraint(equalTo: historyTitle.firstBaselineAnchor),
-            historyTitle.trailingAnchor.constraint(lessThanOrEqualTo: historyCount.leadingAnchor, constant: -12)
-        ])
         historyButton.accessibilityLabel = "Game history"
+        historyButton.accessibilityIdentifier = "open-game-history"
+        historyButton.contentHorizontalAlignment = .leading
         historyButton.addAction(UIAction { [weak self] _ in self?.openHistory() }, for: .touchUpInside)
         loading.textAlignment = .center
     }
@@ -106,7 +78,7 @@ final class HomeViewController: GameObservingViewController, UITableViewDataSour
     }
 
     private func layoutHeader() {
-        let width = table.bounds.width
+        let width = min(596, scroll.bounds.width)
         guard width > 0 else { return }
         let margin: CGFloat = 18
         let contentWidth = width - margin * 2
@@ -125,12 +97,10 @@ final class HomeViewController: GameObservingViewController, UITableViewDataSour
         loading.frame = CGRect(x: margin, y: startButton.frame.maxY + 6, width: contentWidth, height: 16)
         puzzleButton.frame = CGRect(x: margin, y: startButton.frame.maxY + (game.ready ? 10 : 30),
                                     width: contentWidth, height: 64)
-        historyButton.frame = CGRect(x: margin, y: puzzleButton.frame.maxY + 26, width: contentWidth, height: 62)
-        let height = historyButton.frame.maxY
-        if header.frame.width != width || header.frame.height != height {
-            header.frame = CGRect(x: 0, y: 0, width: width, height: height)
-            table.tableHeaderView = header
-        }
+        historyButton.frame = CGRect(x: margin, y: puzzleButton.frame.maxY + 26, width: contentWidth, height: 64)
+        let height = historyButton.frame.maxY + 18
+        header.frame = CGRect(x: (scroll.bounds.width - width) / 2, y: 0, width: width, height: height)
+        scroll.contentSize = CGSize(width: scroll.bounds.width, height: height)
     }
 
     override func updateView() {
@@ -143,20 +113,12 @@ final class HomeViewController: GameObservingViewController, UITableViewDataSour
         puzzleButton.configuration = .quietChess(title: "Puzzle", subtitle: puzzleSubtitle,
                                                  icon: "puzzlepiece.extension", alignment: .leading)
         puzzleButton.contentHorizontalAlignment = .leading
-        historyCount.text = "\(game.games.count) \(game.games.count == 1 ? "game" : "games")"
+        let count = "\(game.games.count) \(game.games.count == 1 ? "game" : "games")"
+        historyButton.configuration = .quietChess(title: "Game history", subtitle: count,
+                                                  icon: "clock.arrow.circlepath", alignment: .leading)
+        historyButton.contentHorizontalAlignment = .leading
         puzzleButton.accessibilityValue = puzzleSubtitle
-        historyButton.accessibilityValue = historyCount.text
-        let next = game.games.sorted { $0.date > $1.date }
-        if records != next {
-            records = next
-            table.reloadData()
-        }
-        if records.isEmpty {
-            let empty = chessLabel("Your first move starts here.\nYour games will appear here, ready to replay.", size: 15, color: QuietChessTheme.slate)
-            empty.textAlignment = .center
-            empty.frame = CGRect(x: 18, y: 0, width: table.bounds.width - 36, height: 90)
-            table.tableFooterView = empty
-        } else { table.tableFooterView = UIView(frame: CGRect(x: 0, y: 0, width: 1, height: 28)) }
+        historyButton.accessibilityValue = count
         view.setNeedsLayout()
     }
 
@@ -167,9 +129,9 @@ final class HomeViewController: GameObservingViewController, UITableViewDataSour
     private func openHistory() {
         let controller = HistoryViewController(game: game) { [weak self] record in
             guard let self else { return }
-            self.dismiss(animated: true) { self.open(record) }
+            self.open(record)
         }
-        present(ChessNavigationController(rootViewController: controller), animated: true)
+        navigationController?.pushViewController(controller, animated: true)
     }
 
     private func open(_ record: SavedGame) {
@@ -180,17 +142,6 @@ final class HomeViewController: GameObservingViewController, UITableViewDataSour
             game.review(record)
         }
         navigationController?.pushViewController(GameViewController(game: game), animated: true)
-    }
-
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { records.count }
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "game", for: indexPath) as! HomeGameCell
-        cell.configure(records[indexPath.row])
-        return cell
-    }
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
-        open(records[indexPath.row])
     }
 }
 
@@ -230,57 +181,5 @@ private final class SideTile: UIControl {
         badge.textColor = selected ? QuietChessTheme.navy : QuietChessTheme.slate
         accessibilityValue = selected ? "Selected" : ""
         accessibilityTraits = selected ? [.button, .selected] : .button
-    }
-}
-
-private final class HomeGameCell: UITableViewCell {
-    private let king = KingArtworkView(frame: .zero)
-    private let puzzle = UIImageView(image: UIImage(systemName: "puzzlepiece.extension"))
-    private let title = chessLabel(size: 17, weight: .semibold)
-    private let detail = chessLabel(size: 13, color: QuietChessTheme.slate)
-
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
-        backgroundColor = .clear
-        selectedBackgroundView = {
-            let view = UIView()
-            view.backgroundColor = QuietChessTheme.panel
-            view.layer.cornerRadius = QuietChessTheme.radius
-            view.layer.cornerCurve = .continuous
-            return view
-        }()
-        puzzle.tintColor = QuietChessTheme.accent
-        let text = UIStackView(arrangedSubviews: [title, detail])
-        text.axis = .vertical
-        text.spacing = 6
-        let icon = UIView()
-        icon.addSubview(king)
-        icon.addSubview(puzzle)
-        king.pinEdges(to: icon, insets: UIEdgeInsets(top: 3, left: 4, bottom: 3, right: 4))
-        puzzle.pinEdges(to: icon, insets: UIEdgeInsets(top: 7, left: 4, bottom: 7, right: 4))
-        let row = UIStackView(arrangedSubviews: [icon, text])
-        row.spacing = 14
-        row.alignment = .center
-        contentView.addSubview(row)
-        row.pinEdges(to: contentView, insets: UIEdgeInsets(top: 16, left: 18, bottom: 16, right: 18))
-        icon.widthAnchor.constraint(equalToConstant: 38).isActive = true
-        icon.heightAnchor.constraint(equalToConstant: 44).isActive = true
-    }
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError("Use init(style:reuseIdentifier:)") }
-    func configure(_ record: SavedGame) {
-        king.white = record.playerWhite
-        king.isHidden = record.isSavedPractice
-        puzzle.isHidden = !record.isSavedPractice
-        title.text = record.homeOutcome
-        detail.text = record.homeDetail
-        accessibilityLabel = "\(record.homeOutcome), \(record.homeDetail)"
-    }
-}
-
-extension NSLayoutConstraint {
-    func withPriority(_ priority: UILayoutPriority) -> NSLayoutConstraint {
-        self.priority = priority
-        return self
     }
 }
