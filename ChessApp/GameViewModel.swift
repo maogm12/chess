@@ -701,21 +701,10 @@ final class GameViewModel: ObservableObject {
 
     private func accept(_ position: PositionSnapshot) {
         snapshot = position
-        var next = Array<BoardPiece?>(repeating: nil, count: 64)
-        for (row, rank) in position.fen.split(separator: " ")[0].split(separator: "/").enumerated() {
-            var file = 0
-            for c in rank {
-                if let count = c.wholeNumberValue { file += count }
-                else {
-                    if row < 8 && file < 8 {
-                        let index = (7-row)*8+file
-                        next[index] = BoardPiece(id: position.pieceIDs[index], kind: c, isWhite: c.isUppercase)
-                    }
-                    file += 1
-                }
-            }
+        board = ChessPosition.squares(from: position.fen).enumerated().map { index, kind in
+            guard kind != ChessPosition.empty else { return nil }
+            return BoardPiece(id: position.pieceIDs[index], kind: kind, isWhite: kind.isUppercase)
         }
-        board = next
         if !reviewing {
             active?.notation = position.notation
             if active?.reason != "Resigned" && active?.reason != "Practice complete" {
