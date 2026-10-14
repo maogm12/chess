@@ -56,7 +56,7 @@ final class ChessBoardView: UIView {
         ChessBoardPalette.colors(for: game.settings.boardTheme)
     }
 
-    func update(animated: Bool = true) {
+    func update(animated: Bool = true, completion: (() -> Void)? = nil) {
         let switchedRecord = recordID != game.record?.id
         recordID = game.record?.id
         if switchedRecord {
@@ -64,11 +64,19 @@ final class ChessBoardView: UIView {
             pieceViews.removeAll()
             placements.removeAll()
         }
-        let last = game.lastMoveSquares
-        let legal = game.legalTargets
+        // Preview the pawn on its destination without committing an incomplete
+        // move to saved history. Keep it until the engine accepts the choice.
+        var displayBoard = game.board
+        let promotion = game.pendingPromotion ?? game.promotions.first
+        if let promotion, let pawn = displayBoard[promotion.from], pawn.name == "pawn" {
+            displayBoard[promotion.to] = pawn
+            displayBoard[promotion.from] = nil
+        }
+        let last = promotion.map { Set([$0.from, $0.to]) } ?? game.lastMoveSquares
+        let legal = promotion == nil ? game.legalTargets : []
         endingSquare = nil
         for index in 0..<64 {
-            let piece = game.board[index]
+            let piece = displayBoard[index]
             let square = squares[index]
             square.baseColor = colors[(index / 8 + index % 8).isMultiple(of: 2) ? 1 : 0]
             let kingInCheck = piece?.name == "king" && piece?.isWhite == game.whiteToMove && game.snapshot?.inCheck == true
@@ -86,22 +94,23 @@ final class ChessBoardView: UIView {
                 endingMarker.ending = kingCheckmated ? .checkmate : .stalemate
                 endingMarker.accessibilityIdentifier = kingCheckmated ? "checkmate-marker" : "stalemate-marker"
             }
-            square.selectionHighlighted = game.selectedSquare == index
+            square.selectionHighlighted = promotion == nil && game.selectedSquare == index
             square.overlays = overlays
             square.target = legal.contains(index)
             square.occupied = piece != nil
             // Disable interaction without dimming or flashing the board while thinking.
-            square.isUserInteractionEnabled = game.inputAllowed
+            square.isUserInteractionEnabled = game.inputAllowed && promotion == nil
             square.accessibilityLabel = (piece.map { ($0.isWhite ? "White " : "Black ") + $0.name } ?? "Empty") + " " + game.squareLabel(index)
             square.accessibilityValue = [
-                game.selectedSquare == index ? "Selected" : legal.contains(index) ? "Legal destination" : nil,
+                promotion?.to == index ? "Awaiting promotion" :
+                    game.selectedSquare == index && promotion == nil ? "Selected" : legal.contains(index) ? "Legal destination" : nil,
                 kingCheckmated ? "Checkmate" : kingStalemated ? "Stalemate" : kingInCheck ? "Check" : nil
             ].compactMap { $0 }.joined(separator: ", ")
             square.setNeedsDisplay()
         }
         let previous = placements
         var next: [Int: Int] = [:]
-        for (square, piece) in game.board.enumerated() {
+        for (square, piece) in displayBoard.enumerated() {
             guard let piece else { continue }
             next[piece.id] = square
             if pieceViews[piece.id] == nil {
@@ -122,8 +131,12 @@ final class ChessBoardView: UIView {
             }
         }
         if animated && !switchedRecord && previous != next && !UIAccessibility.isReduceMotionEnabled && bounds.width > 0 {
-            UIView.animate(withDuration: 0.24, delay: 0, options: [.beginFromCurrentState, .allowUserInteraction], animations: movePieces)
-        } else { movePieces() }
+            UIView.animate(withDuration: 0.24, delay: 0, options: [.beginFromCurrentState, .allowUserInteraction],
+                           animations: movePieces) { _ in completion?() }
+        } else {
+            movePieces()
+            completion?()
+        }
         grid.layer.addSublayer(arrow)
         endingMarker.isHidden = endingSquare == nil
         grid.bringSubviewToFront(endingMarker)
@@ -181,6 +194,10 @@ final class ChessBoardView: UIView {
 
     private func squareFrame(_ square: Int) -> CGRect {
         ChessBoardLayout.squareFrame(square, side: grid.bounds.width, whiteAtBottom: game.whiteAtBottom)
+    }
+
+    func promotionAnchor(at square: Int) -> UIView {
+        squares[square]
     }
 
     private func updateArrow() {

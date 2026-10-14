@@ -1,6 +1,6 @@
 import UIKit
 
-final class GameViewController: GameObservingViewController, UITableViewDataSource, UITableViewDelegate, UIGestureRecognizerDelegate {
+final class GameViewController: GameObservingViewController, UITableViewDataSource, UITableViewDelegate, UIGestureRecognizerDelegate, UIPopoverPresentationControllerDelegate {
     private enum TimelineRow: Equatable {
         case moves(number: Int, white: Int?, black: Int?)
         case fork(BranchPoint)
@@ -53,7 +53,8 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
     }
     private var previousFeedbackPosition: FeedbackPosition?
     private let endFeedback: (UINotificationFeedbackGenerator.FeedbackType) -> Void
-    private weak var promotionAlert: UIAlertController?
+    private weak var promotionPicker: PromotionPickerViewController?
+    private var promotionPresentationPending = false
 
     init(game: GameViewModel,
          endFeedback: @escaping (UINotificationFeedbackGenerator.FeedbackType) -> Void = {
@@ -195,6 +196,10 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
 
     override func updateView() {
         guard isViewLoaded else { return }
+        if game.promotions.isEmpty, let picker = promotionPicker {
+            promotionPicker = nil
+            picker.dismiss(animated: false)
+        }
         if game.isThinking || game.isHinting || game.isRating || game.busy { spinner.startAnimating() }
         else { spinner.stopAnimating() }
         if game.reviewing { spinner.isHidden = true }
@@ -207,7 +212,15 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         }
         topCaptured.update(pieces: game.capturedPieces(byWhite: !game.whiteAtBottom), byWhite: !game.whiteAtBottom)
         bottomCaptured.update(pieces: game.capturedPieces(byWhite: game.whiteAtBottom), byWhite: game.whiteAtBottom)
-        board.update()
+        if !game.promotions.isEmpty && promotionPicker == nil && !promotionPresentationPending {
+            promotionPresentationPending = true
+            board.update { [weak self] in
+                self?.promotionPresentationPending = false
+                self?.showPromotionIfNeeded()
+            }
+        } else {
+            board.update()
+        }
         hintLabel.isHidden = game.hint == nil
         if let hint = game.hint { hintLabel.text = "Try \(hint.san) · \(game.squareLabel(hint.from)) → \(game.squareLabel(hint.to))" }
         undo.isEnabled = game.canUndo
@@ -265,7 +278,6 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         navigationItem.rightBarButtonItems?.first?.menu = optionsMenu()
         updateTimer()
         view.setNeedsLayout()
-        showPromotionIfNeeded()
     }
 
     private func updateHaptics() {
@@ -509,17 +521,41 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
     }
 
     private func showPromotionIfNeeded() {
-        guard !game.promotions.isEmpty, promotionAlert == nil, presentedViewController == nil,
+        guard let promotion = game.promotions.first, promotionPicker == nil, presentedViewController == nil,
               view.window != nil else { return }
-        let alert = UIAlertController(title: "Promote pawn", message: nil, preferredStyle: .actionSheet)
-        for move in game.promotions {
-            let name: String
-            switch move.promotion { case "q": name = "Queen"; case "r": name = "Rook"; case "b": name = "Bishop"; default: name = "Knight" }
-            alert.addAction(UIAlertAction(title: name, style: .default) { [weak self] _ in self?.game.play(move) })
+        let picker = PromotionPickerViewController(moves: game.promotions, isWhite: game.whiteToMove)
+        picker.modalPresentationStyle = .popover
+        picker.onSelect = { [weak self, weak picker] move in
+            self?.promotionPicker = nil
+            self?.game.play(move)
+            picker?.dismiss(animated: true)
         }
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in self?.game.promotions = [] })
-        promotionAlert = alert
-        presentActionSheet(alert, from: board)
+        if let popover = picker.popoverPresentationController {
+            let square = board.promotionAnchor(at: promotion.to)
+            popover.sourceView = square
+            popover.sourceRect = square.bounds
+            popover.permittedArrowDirections = [.up, .down]
+            popover.backgroundColor = QuietChessTheme.background
+            popover.delegate = self
+        }
+        promotionPicker = picker
+        present(picker, animated: true)
+    }
+
+    private func cancelPromotion() {
+        promotionPicker = nil
+        game.promotions = []
+        game.selectedSquare = nil
+        board.update()
+    }
+
+    func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle { .none }
+
+    func adaptivePresentationStyle(for controller: UIPresentationController,
+                                   traitCollection: UITraitCollection) -> UIModalPresentationStyle { .none }
+
+    func popoverPresentationControllerDidDismissPopover(_ popoverPresentationController: UIPopoverPresentationController) {
+        cancelPromotion()
     }
 
     private func optionsMenu() -> UIMenu {
@@ -584,6 +620,59 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
             let rated = [white, black].compactMap { $0 }.contains { ratings.indices.contains($0) && ratings[$0] != nil }
             return rated ? 54 : (timeline[indexPath.row].contains(ply: redoPly ?? -1) ? 40 : 32)
         }
+    }
+}
+
+final class PromotionPickerViewController: UIViewController {
+    private let moves: [LegalMove]
+    private let isWhite: Bool
+    var onSelect: ((LegalMove) -> Void)?
+
+    init(moves: [LegalMove], isWhite: Bool) {
+        self.moves = moves
+        self.isWhite = isWhite
+        super.init(nibName: nil, bundle: nil)
+        preferredContentSize = CGSize(width: 252, height: 66)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("Use init(moves:isWhite:)") }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = QuietChessTheme.background
+        overrideUserInterfaceStyle = .light
+        let choices = UIStackView()
+        choices.distribution = .fillEqually
+        choices.spacing = 4
+        let names = ["q": "Queen", "r": "Rook", "b": "Bishop", "n": "Knight"]
+        for kind in ["q", "r", "b", "n"] {
+            guard let move = moves.first(where: { $0.promotion == kind }) else { continue }
+            let button = UIButton(type: .system)
+            button.backgroundColor = QuietChessTheme.panel
+            button.layer.cornerRadius = QuietChessTheme.radius
+            button.accessibilityIdentifier = "promote-\(kind)"
+            button.accessibilityLabel = "Promote to \(names[kind] ?? kind)"
+            let artwork = ChessPieceArtworkView()
+            artwork.kind = Character(kind)
+            artwork.isWhite = isWhite
+            artwork.isUserInteractionEnabled = false
+            button.addSubview(artwork)
+            artwork.pinEdges(to: button, insets: .init(top: 6, left: 6, bottom: 6, right: 6))
+            button.addAction(UIAction { [weak self] _ in self?.onSelect?(move) }, for: .touchUpInside)
+            choices.addArrangedSubview(button)
+        }
+        view.addSubview(choices)
+        choices.translatesAutoresizingMaskIntoConstraints = false
+        // UIKit includes the arrow in the root view's bounds. Keep the choices
+        // inside the body for arrows above or below the promotion square.
+        let body = view.safeAreaLayoutGuide
+        NSLayoutConstraint.activate([
+            choices.leadingAnchor.constraint(equalTo: body.leadingAnchor, constant: 8),
+            choices.trailingAnchor.constraint(equalTo: body.trailingAnchor, constant: -8),
+            choices.topAnchor.constraint(equalTo: body.topAnchor, constant: 8),
+            choices.bottomAnchor.constraint(equalTo: body.bottomAnchor, constant: -8)
+        ])
     }
 }
 
