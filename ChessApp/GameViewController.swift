@@ -535,7 +535,7 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
             popover.sourceView = square
             popover.sourceRect = square.bounds
             popover.permittedArrowDirections = [.up, .down]
-            popover.backgroundColor = QuietChessTheme.background
+            popover.backgroundColor = ForkChessTheme.background
             popover.delegate = self
         }
         promotionPicker = picker
@@ -640,7 +640,7 @@ final class PromotionPickerViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = QuietChessTheme.background
+        view.backgroundColor = ForkChessTheme.background
         overrideUserInterfaceStyle = .light
         let choices = UIStackView()
         choices.distribution = .fillEqually
@@ -649,8 +649,8 @@ final class PromotionPickerViewController: UIViewController {
         for kind in ["q", "r", "b", "n"] {
             guard let move = moves.first(where: { $0.promotion == kind }) else { continue }
             let button = UIButton(type: .system)
-            button.backgroundColor = QuietChessTheme.panel
-            button.layer.cornerRadius = QuietChessTheme.radius
+            button.backgroundColor = ForkChessTheme.panel
+            button.layer.cornerRadius = ForkChessTheme.radius
             button.accessibilityIdentifier = "promote-\(kind)"
             button.accessibilityLabel = "Promote to \(names[kind] ?? kind)"
             let artwork = ChessPieceArtworkView()
