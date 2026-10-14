@@ -44,6 +44,8 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
     private var pagingStartX: CGFloat?
     private var renderedBranches: [GameBranch] = []
     private var renderedBranchID: UUID?
+    private var renderedRecordID: UUID?
+    private var pendingBranchPage: (ply: Int, direction: Int)?
     private struct FeedbackPosition {
         let gameID: UUID
         let branchID: UUID
@@ -89,7 +91,13 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         movesTable.layer.cornerRadius = 12
         movesTable.layer.borderColor = QuietChessTheme.line.cgColor
         movesTable.layer.borderWidth = 0.6
+        movesTable.clipsToBounds = true
         movesTable.allowsSelection = false
+        // All timeline heights are explicit; estimates can shift unchanged rows
+        // when a branch inserts or removes its continuation.
+        movesTable.estimatedRowHeight = 0
+        movesTable.estimatedSectionHeaderHeight = 0
+        movesTable.estimatedSectionFooterHeight = 0
         movesTable.register(MoveCell.self, forCellReuseIdentifier: "move")
         movesTable.register(ForkCell.self, forCellReuseIdentifier: "fork")
         movesTable.accessibilityIdentifier = "move-timeline"
@@ -230,15 +238,32 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         if notation != game.timelineNotation || ratings != nextRatings || selectedPly != ply ||
             renderedBranches != branches || renderedBranchID != game.record?.branchID || redoPly != nextRedoPly {
             let changedMoves = notation != game.timelineNotation
+            let changedRecord = renderedRecordID != game.record?.id
+            let switchingBranch = game.reviewing && !changedRecord &&
+                renderedBranchID != game.record?.branchID
+            let oldTimeline = timeline
+            let oldNotation = notation
+            let oldOffset = movesTable.contentOffset
             notation = game.timelineNotation
             ratings = nextRatings
             selectedPly = ply
             redoPly = nextRedoPly
             renderedBranches = branches
             renderedBranchID = game.record?.branchID
-            timeline = makeTimeline()
-            movesTable.reloadData()
-            if changedMoves && !notation.isEmpty {
+            renderedRecordID = game.record?.id
+            let nextTimeline = makeTimeline()
+            if switchingBranch {
+                replaceContinuation(from: oldTimeline, to: nextTimeline, notation: oldNotation, keeping: oldOffset)
+                if let page = pendingBranchPage {
+                    animateContinuation(below: page.ply, direction: page.direction)
+                }
+                pendingBranchPage = nil
+            } else {
+                if changedRecord || changedMoves { movesTable.contentInset.bottom = 0 }
+                timeline = nextTimeline
+                movesTable.reloadData()
+            }
+            if changedMoves && !switchingBranch && !notation.isEmpty {
                 movesTable.layoutIfNeeded()
                 let row = timeline.firstIndex { $0.contains(ply: ply) } ?? 0
                 movesTable.scrollToRow(at: IndexPath(row: row, section: 0), at: .bottom, animated: false)
@@ -307,17 +332,21 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
     }
 
     private func branchPoint(at location: CGPoint) -> BranchPoint? {
-        guard let record = game.record else { return nil }
-        let index = movesTable.indexPathForRow(at: location)?.row
-        let ply = index.flatMap { timeline.indices.contains($0) ? timeline[$0].lastPly : nil } ?? notation.count
-        return record.branchPoints.last { $0.ply <= ply }
+        guard let record = game.record,
+              let index = movesTable.indexPathForRow(at: location)?.row,
+              timeline.indices.contains(index) else { return nil }
+        switch timeline[index] {
+        case .fork(let point): return point
+        case .moves:
+            return record.branchPoints.last { $0.ply < timeline[index].lastPly }
+        }
     }
 
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         guard gestureRecognizer === historyPan else { return true }
         let velocity = historyPan.velocity(in: movesTable)
         let location = historyPan.location(in: movesTable)
-        guard abs(velocity.x) > abs(velocity.y), branchPoint(at: location) != nil else { return false }
+        guard !game.busy, abs(velocity.x) > abs(velocity.y), branchPoint(at: location) != nil else { return false }
         // Keep the initial travel even if the scroll view resets the pan's translation.
         pagingStartX = location.x - historyPan.translation(in: movesTable).x
         return true
@@ -329,8 +358,16 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
             return
         }
         if gesture.state == .cancelled || gesture.state == .failed {
+            resetContinuation()
             pagingPoint = nil
             pagingStartX = nil
+            return
+        }
+        if gesture.state == .changed, let point = pagingPoint {
+            let distance = gesture.translation(in: movesTable).x
+            for cell in continuationCells(below: point.ply) {
+                cell.transform = CGAffineTransform(translationX: distance, y: 0)
+            }
             return
         }
         guard gesture.state == .ended else { return }
@@ -338,15 +375,88 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         guard let point = pagingPoint, let startX = pagingStartX else { return }
         let distance = gesture.location(in: movesTable).x - startX
         let speed = gesture.velocity(in: movesTable).x
-        guard abs(distance) > 35 || (abs(distance) > 8 && abs(speed) > 350) else { return }
+        guard abs(distance) > 35 || (abs(distance) > 8 && abs(speed) > 350) else {
+            resetContinuation()
+            return
+        }
         let direction = distance < 0 ? 1 : -1
-        guard point.options.indices.contains(point.selectedIndex + direction) else { return }
-        let transition = CATransition()
-        transition.duration = 0.2
-        transition.type = UIAccessibility.isReduceMotionEnabled ? .fade : .push
-        transition.subtype = direction > 0 ? .fromRight : .fromLeft
-        movesTable.layer.add(transition, forKey: "branch-page")
+        resetContinuation()
+        pageBranch(direction: direction, at: point.ply)
+    }
+
+    func pageBranch(direction: Int, at ply: Int) {
+        guard game.ready, !game.busy, let point = game.record?.branchPoints.first(where: { $0.ply == ply }),
+              direction != 0, point.options.indices.contains(point.selectedIndex + direction) else { return }
+        pendingBranchPage = (point.ply, direction)
         game.switchBranch(direction: direction, at: point.ply)
+    }
+
+    private func continuationCells(below ply: Int) -> [UITableViewCell] {
+        guard let fork = timeline.firstIndex(where: {
+            if case .fork(let point) = $0 { return point.ply == ply }
+            return false
+        }) else { return [] }
+        return movesTable.visibleCells.filter {
+            (movesTable.indexPath(for: $0)?.row ?? -1) > fork
+        }
+    }
+
+    private func resetContinuation() {
+        UIView.animate(withDuration: 0.15) {
+            self.movesTable.visibleCells.forEach { $0.transform = .identity }
+        }
+    }
+
+    private func animateContinuation(below ply: Int, direction: Int) {
+        let cells = continuationCells(below: ply)
+        for cell in cells {
+            cell.layer.removeAllAnimations()
+            if UIAccessibility.isReduceMotionEnabled {
+                cell.alpha = 0
+            } else {
+                cell.transform = CGAffineTransform(translationX: direction > 0 ? movesTable.bounds.width : -movesTable.bounds.width, y: 0)
+            }
+        }
+        UIView.animate(withDuration: 0.2) {
+            cells.forEach { $0.transform = .identity; $0.alpha = 1 }
+        }
+    }
+
+    private func replaceContinuation(from old: [TimelineRow], to next: [TimelineRow],
+                                     notation oldNotation: [String], keeping offset: CGPoint) {
+        var common = 0
+        for (previous, following) in zip(old, next) {
+            let same: Bool
+            switch (previous, following) {
+            case (.fork(let lhs), .fork(let rhs)):
+                same = lhs.ply == rhs.ply && lhs.options == rhs.options
+            case (.moves(let a, let aw, let ab), .moves(let b, let bw, let bb)):
+                same = a == b && aw == bw && ab == bb && [aw, ab].compactMap { $0 }.allSatisfy {
+                    oldNotation.indices.contains($0) && notation.indices.contains($0) && oldNotation[$0] == notation[$0]
+                }
+            default: same = false
+            }
+            guard same else { break }
+            common += 1
+        }
+        // Keep shared cells in place and replace only the continuation. A shorter
+        // branch gets enough bottom padding to preserve the user's scroll position.
+        UIView.performWithoutAnimation {
+            movesTable.performBatchUpdates {
+                // UITableView may lay out old rows before entering this closure.
+                // Change the data source together with its row mutations.
+                timeline = next
+                movesTable.deleteRows(at: (common..<old.count).map { IndexPath(row: $0, section: 0) }, with: .none)
+                movesTable.insertRows(at: (common..<timeline.count).map { IndexPath(row: $0, section: 0) }, with: .none)
+            }
+            movesTable.layoutIfNeeded()
+            movesTable.contentInset.bottom = max(0, offset.y + movesTable.bounds.height - movesTable.contentSize.height)
+            movesTable.setContentOffset(offset, animated: false)
+            for cell in movesTable.visibleCells {
+                guard let index = movesTable.indexPath(for: cell), index.row < common else { continue }
+                configure(cell, at: index)
+            }
+        }
     }
 
     private var firstMoveOffset: Int {
@@ -476,21 +586,35 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         timeline.count
     }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let identifier: String
+        switch timeline[indexPath.row] {
+        case .fork: identifier = "fork"
+        case .moves: identifier = "move"
+        }
+        let cell = tableView.dequeueReusableCell(withIdentifier: identifier, for: indexPath)
+        configure(cell, at: indexPath)
+        return cell
+    }
+
+    private func configure(_ cell: UITableViewCell, at indexPath: IndexPath) {
+        cell.transform = .identity
+        cell.alpha = 1
         switch timeline[indexPath.row] {
         case .fork(let point):
-            let cell = tableView.dequeueReusableCell(withIdentifier: "fork", for: indexPath) as! ForkCell
+            let cell = cell as! ForkCell
             if let record = game.record {
-                cell.configure(point: point, record: record) { [weak self] branchID in self?.game.selectBranch(branchID) }
+                cell.configure(point: point, record: record) { [weak self] branchID in
+                    guard let index = point.options.firstIndex(of: branchID) else { return }
+                    self?.pageBranch(direction: index - point.selectedIndex, at: point.ply)
+                }
             }
-            return cell
         case .moves(let number, let white, let black):
-            let cell = tableView.dequeueReusableCell(withIdentifier: "move", for: indexPath) as! MoveCell
+            let cell = cell as! MoveCell
             cell.configure(number: number, whiteIndex: white, blackIndex: black, notation: notation, ratings: ratings,
                            selectedPly: selectedPly, redoPly: redoPly,
                            forks: Set(game.record?.branchPoints.map(\.ply) ?? []),
                            select: { [weak self] ply in self?.game.seek(ply) },
                            redo: { [weak self] in self?.game.redoSelectedMove() })
-            return cell
         }
     }
 

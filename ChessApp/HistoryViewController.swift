@@ -15,9 +15,7 @@ final class HistoryViewController: GameObservingViewController, UITableViewDataS
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "History"
-        navigationItem.rightBarButtonItem = UIBarButtonItem(systemItem: .done, primaryAction: UIAction { [weak self] _ in
-            self?.dismiss(animated: true)
-        })
+        navigationItem.backButtonTitle = "History"
         table.backgroundColor = .clear
         table.dataSource = self
         table.delegate = self
@@ -25,6 +23,12 @@ final class HistoryViewController: GameObservingViewController, UITableViewDataS
         table.estimatedRowHeight = 98
         view.addSubview(table)
         table.pinEdges(to: view)
+        updateView()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
         updateView()
     }
 

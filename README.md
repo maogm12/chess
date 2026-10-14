@@ -15,7 +15,9 @@ no signing identity or credentials are committed here.
 ## What works
 
 - Play White or Black against the Arasan bot.
-- A large side selector, new-game action, puzzle library, and inline game history on the home screen.
+- A large side selector, new-game action, puzzle library, and game-history entry on the home screen.
+  Saved games live on a separate History navigation page; opening a game and returning preserves
+  the Home → History → Game navigation stack.
   Home cards use the app's own visual language: theme fills, one shared corner radius, serif
   section headings, and no reference-screenshot chrome such as badge chips, stripes, or arrows.
 - Flat vector piece art from the `design/chess_pieces` icon set: white pieces use an ivory fill with
@@ -72,7 +74,9 @@ no signing identity or credentials are committed here.
   or full-width continue button; that space belongs to the history list.
   Forks have an inline branch page row below the fork with the selected branch, page count,
   dots, and a visible horizontal swipe cue. Horizontal drags below a fork switch its continuation;
-  vertical drags scroll the history. Tapping a page dot or choosing a line in the branch menu
+  only rows below that fork move horizontally; the shared moves and the pager stay in place.
+  Switching lines preserves the history's vertical scroll position, even for shorter branches.
+  Vertical drags scroll the history. Tapping a page dot or choosing a line in the branch menu
   also switches branches. **Latest** returns to the selected line's tip.
   Each branch has one parent; identical positions never merge. Branches retain their own
   moves, ratings, outcome, and timer, and one game occupies one history entry.
@@ -126,10 +130,33 @@ It validates starting-position perft (8,902 positions at depth 3), castling,
 en passant, promotion, mate, stalemate, draw rules, invalid moves, and 24 engine plies.
 Assertions remain enabled in Debug builds.
 
+### GitHub Actions
+
+The **Regression tests** workflow runs on every pull request targeting `main`,
+on pushes to `main`, and manually from the Actions tab. Separate jobs run the
+engine suite and all simulator integration tests on an ARM64 `macos-26` runner
+with Xcode 26.6. The simulator job selects an available iPhone from the latest
+installed iOS runtime and disables code signing. No signing credentials are needed.
+
+Each run keeps its logs, the `.xcresult` bundle, and exported XCTest image
+attachments as downloadable artifacts for 14 days, including on test failures.
+Screenshot attachments show the screens rendered by the tests; they are not
+automatic visual comparisons. PRs fixing UI issues should still include screenshots
+of the affected behavior in their descriptions.
+
+To run the same simulator suite locally on an ARM64 Mac:
+
+```sh
+bash Tests/run-ios-tests.sh
+```
+
+Results go to `build/ci`. To repeat a local run, pass a fresh output directory,
+for example `bash Tests/run-ios-tests.sh build/ci-next`.
+
 ## Structure
 
 - `ChessApp.swift`: UIKit application/scene delegates and background lifecycle.
-- `HomeViewController.swift`: side selection, new game, and inline history.
+- `HomeViewController.swift`: side selection, new game, and entry points for Puzzle and History.
 - `GameViewController.swift`: game controls, countdown, move list, and replay.
 - `PuzzleViewController.swift`: the puzzle library, its tiles, and the tile that opens the editor.
 - `PuzzleEditorViewController.swift`: hand-built positions, square popovers, and side selection.
