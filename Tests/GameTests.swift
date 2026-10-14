@@ -662,6 +662,9 @@ final class GameTests: XCTestCase {
         XCTAssertNil(home.presentedViewController)
         XCTAssertNil(historyPage.navigationItem.rightBarButtonItem, "A navigation page uses Back, not Done")
         XCTAssertFalse(navigation.isNavigationBarHidden)
+        writeReviewImage(UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }, named: "HistoryPage")
         let history = try XCTUnwrap(descendants(of: historyPage.view).first { $0 is UITableView } as? UITableView)
         XCTAssertEqual(historyPage.tableView(history, numberOfRowsInSection: 0), 1)
         historyPage.tableView(history, didSelectRowAt: IndexPath(row: 0, section: 0))
