@@ -1,0 +1,68 @@
+name: Regression tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: regression-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+
+jobs:
+  engine:
+    name: Engine regression
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Prepare toolchain
+        run: |
+          test "$(uname -m)" = arm64
+          xcodebuild -version
+          command -v rg >/dev/null || brew install ripgrep
+      - name: Run engine tests
+        run: |
+          mkdir -p build/ci
+          set -o pipefail
+          bash Tests/run-engine-tests.sh 2>&1 | tee build/ci/engine.log
+      - name: Upload engine log
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: engine-regression-${{ github.run_attempt }}
+          path: build/ci/engine.log
+          retention-days: 14
+
+  ios:
+    name: iOS regression
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Run simulator tests
+        run: bash Tests/run-ios-tests.sh
+      - name: Export test screenshots
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ -d build/ci/Regression.xcresult ]; then
+            xcrun xcresulttool export attachments \
+              --path build/ci/Regression.xcresult \
+              --output-path build/ci/attachments
+          fi
+      - name: Upload results, logs, and screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-regression-${{ github.run_attempt }}
+          path: build/ci/
+          retention-days: 14

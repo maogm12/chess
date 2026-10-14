@@ -122,6 +122,29 @@ It validates starting-position perft (8,902 positions at depth 3), castling,
 en passant, promotion, mate, stalemate, draw rules, invalid moves, and 24 engine plies.
 Assertions remain enabled in Debug builds.
 
+### GitHub Actions
+
+The **Regression tests** workflow runs on every pull request targeting `main`,
+on pushes to `main`, and manually from the Actions tab. Separate jobs run the
+engine suite and all simulator integration tests on an ARM64 `macos-26` runner
+with Xcode 26.6. The simulator job selects an available iPhone from the latest
+installed iOS runtime and disables code signing. No signing credentials are needed.
+
+Each run keeps its logs, the `.xcresult` bundle, and exported XCTest image
+attachments as downloadable artifacts for 14 days, including on test failures.
+Screenshot attachments show the screens rendered by the tests; they are not
+automatic visual comparisons. PRs fixing UI issues should still include screenshots
+of the affected behavior in their descriptions.
+
+To run the same simulator suite locally on an ARM64 Mac:
+
+```sh
+bash Tests/run-ios-tests.sh
+```
+
+Results go to `build/ci`. To repeat a local run, pass a fresh output directory,
+for example `bash Tests/run-ios-tests.sh build/ci-next`.
+
 ## Structure
 
 - `ChessApp.swift`: UIKit application/scene delegates and background lifecycle.
