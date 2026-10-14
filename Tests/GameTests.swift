@@ -244,12 +244,46 @@ final class GameTests: XCTestCase {
                 $0.accessibilityIdentifier == "promote-n"
             } as? UIButton)
             knight.sendActions(for: .touchUpInside)
+            // Check before yielding to the engine: selecting a piece must not
+            // undo the preview while its move is awaiting acceptance.
+            screen.updateView()
+            screen.view.layoutIfNeeded()
+            XCTAssertTrue(game.busy)
+            XCTAssertEqual(game.pendingPromotion?.promotion, "n")
+            XCTAssertEqual(game.board[fromIndex], pawn)
+            XCTAssertTrue(from.accessibilityLabel?.contains("Empty") == true)
+            XCTAssertTrue(to.accessibilityLabel?.contains("pawn") == true)
+            XCTAssertEqual(glyph.frame.midX, to.frame.midX, accuracy: 0.1)
+            XCTAssertEqual(glyph.frame.midY, to.frame.midY, accuracy: 0.1)
+            writeReviewImage(UIGraphicsImageRenderer(bounds: window.bounds).image { context in
+                window.layer.render(in: context.cgContext)
+            }, named: isWhite ? "WhitePromotionPending" : "BlackPromotionPending")
             try await settle(game)
             try await waitUntil("promotion selection dismissed") { screen.presentedViewController == nil }
             XCTAssertEqual(game.board[toIndex]?.name, "knight")
+            XCTAssertNil(game.pendingPromotion)
             XCTAssertEqual(game.active?.moves.count, 1)
             XCTAssertEqual(game.active?.reason, "Insufficient material")
         }
+    }
+
+    func testPendingPromotionIsInvalidatedByNewGame() async throws {
+        let (game, _) = try await makeGame()
+        var record = SavedGame(playerWhite: true, isPuzzle: true)
+        record.baseFEN = "1r5k/P7/8/8/8/8/8/7K w - - 0 1"
+        game.openPuzzle(record)
+        try await settle(game)
+        game.handleTap(squareIndex("a7"))
+        game.handleTap(squareIndex("b8"))
+        game.play(try XCTUnwrap(game.promotions.first { $0.promotion == "n" }))
+        XCTAssertNotNil(game.pendingPromotion)
+        game.newGame()
+        XCTAssertNil(game.pendingPromotion)
+        try await settle(game)
+        XCTAssertEqual(game.active?.baseFEN, GameViewModel.startFEN)
+        XCTAssertTrue(game.active?.moves.isEmpty == true)
+        XCTAssertEqual(game.board[squareIndex("a7")]?.name, "pawn")
+        XCTAssertFalse(game.board[squareIndex("a7")]?.isWhite ?? true)
     }
 
     func testPhoneWindowAndRenderScreens() async throws {

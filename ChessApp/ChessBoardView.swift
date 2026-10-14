@@ -65,11 +65,11 @@ final class ChessBoardView: UIView {
             placements.removeAll()
         }
         // Preview the pawn on its destination without committing an incomplete
-        // move to the engine or saved history before a promotion is chosen.
+        // move to saved history. Keep it until the engine accepts the choice.
         var displayBoard = game.board
-        let promotion = game.promotions.first
-        if let promotion {
-            displayBoard[promotion.to] = displayBoard[promotion.from]
+        let promotion = game.pendingPromotion ?? game.promotions.first
+        if let promotion, let pawn = displayBoard[promotion.from], pawn.name == "pawn" {
+            displayBoard[promotion.to] = pawn
             displayBoard[promotion.from] = nil
         }
         let last = promotion.map { Set([$0.from, $0.to]) } ?? game.lastMoveSquares

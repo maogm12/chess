@@ -36,6 +36,7 @@ no signing identity or credentials are committed here.
   Promotion first previews the pawn on its destination, then opens an icon popover anchored
   to that square. Choosing a piece commits the move; cancelling restores the position without
   changing the saved history, including captures and Black's board perspective.
+  The preview stays on the destination until the engine accepts the selected promotion.
 - Check, checkmate, stalemate, insufficient material, 50-move, and threefold repetition detection.
   In this practice app the 50-move and threefold draws are automatically accepted.
   Selection outlines the square in green without changing its fill; recent moves use a muted

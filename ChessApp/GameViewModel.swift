@@ -264,6 +264,7 @@ final class GameViewModel: ObservableObject {
     @Published private(set) var hint: LegalMove?
     @Published var selectedSquare: Int?
     @Published var promotions: [LegalMove] = []
+    @Published private(set) var pendingPromotion: LegalMove?
     @Published var errorMessage: String?
     @Published var flipped = false
     @Published private(set) var timerStartedAt: Date?
@@ -431,12 +432,15 @@ final class GameViewModel: ObservableObject {
     }
 
     func play(_ move: LegalMove) {
-        guard inputAllowed, snapshot?.legal.contains(move) == true else { return }
+        guard inputAllowed, snapshot?.legal.contains(move) == true,
+              let active, let engine else { return }
+        // Closing the picker must not undo the pawn preview while the serial
+        // engine is still accepting the selected promotion.
+        pendingPromotion = move.promotion == nil ? nil : move
         promotions = []
         selectedSquare = nil
         hint = nil
         let token = generation
-        guard let active, let engine else { return }
         busy = true
         Task {
             do {
@@ -643,6 +647,7 @@ final class GameViewModel: ObservableObject {
         isRating = false
         selectedSquare = nil
         promotions = []
+        pendingPromotion = nil
         hint = nil
         selectedHistoricalPly = nil
     }
@@ -716,6 +721,7 @@ final class GameViewModel: ObservableObject {
             }
         }
         board = next
+        pendingPromotion = nil
         if !reviewing {
             active?.notation = position.notation
             if active?.reason != "Resigned" && active?.reason != "Practice complete" {
@@ -729,6 +735,7 @@ final class GameViewModel: ObservableObject {
 
     private func fail(_ error: Error, token: Int) {
         guard token == generation else { return }
+        pendingPromotion = nil
         busy = false
         isThinking = false
         isHinting = false
