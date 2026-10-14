@@ -1,6 +1,6 @@
 import Foundation
 
-/// FEN helpers shared by the puzzle editor, the puzzle thumbnails, and position validation.
+/// FEN helpers shared by gameplay, the puzzle editor, thumbnails, and position validation.
 ///
 /// Positions are held as 64 characters in board order: index 0 is a1 and index 63 is h8, the same
 /// order the engine bridge uses. `" "` means an empty square, uppercase pieces are white.
