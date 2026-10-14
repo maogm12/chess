@@ -236,14 +236,21 @@ final class GameTests: XCTestCase {
                 let artwork = try XCTUnwrap(button.subviews.first { $0 is ChessPieceArtworkView } as? ChessPieceArtworkView)
                 XCTAssertEqual(artwork.isWhite, isWhite)
                 XCTAssertNil(button.title(for: .normal), "Choices display piece artwork")
+                let frame = button.convert(button.bounds, to: picker.view)
+                let safe = picker.view.safeAreaLayoutGuide.layoutFrame
+                XCTAssertGreaterThanOrEqual(frame.minY, safe.minY, "The icon must clear the popover arrow")
+                XCTAssertLessThanOrEqual(frame.maxY, safe.maxY)
+                XCTAssertEqual(frame.midY, safe.midY, accuracy: 0.1, "Icons are centered in the popover body")
             }
             writeReviewImage(UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
                 window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
             }, named: isWhite ? "WhitePromotionPopover" : "BlackPromotionPopover")
-            let cancel = try XCTUnwrap(descendants(of: picker.view).first {
-                $0.accessibilityIdentifier == "cancel-promotion"
-            } as? UIButton)
-            cancel.sendActions(for: .touchUpInside)
+            XCTAssertNil(descendants(of: picker.view).first { $0.accessibilityIdentifier == "cancel-promotion" },
+                         "Outside dismissal is the only cancellation control")
+            // Programmatic dismissals don't invoke UIKit's outside-tap callback.
+            // Exercise that delegate callback explicitly, then finish dismissal.
+            screen.popoverPresentationControllerDidDismissPopover(popover)
+            picker.dismiss(animated: false)
             try await waitUntil("promotion cancelled") { screen.presentedViewController == nil }
             screen.updateView()
             XCTAssertTrue(game.promotions.isEmpty)
@@ -251,7 +258,22 @@ final class GameTests: XCTestCase {
             XCTAssertEqual(glyph.frame.midY, from.frame.midY, accuracy: 0.1)
             XCTAssertTrue(to.accessibilityLabel?.contains("rook") == true)
             XCTAssertTrue(game.active?.moves.isEmpty == true)
+            game.flipped.toggle()
+            screen.updateView()
+            board.layoutIfNeeded()
             let secondPicker = try await beginPromotion()
+            let secondPopover = try XCTUnwrap(secondPicker.popoverPresentationController)
+            XCTAssertEqual(secondPopover.arrowDirection, .down, "Flipping exercises the bottom arrow")
+            let safe = secondPicker.view.safeAreaLayoutGuide.layoutFrame
+            for button in descendants(of: secondPicker.view).compactMap({ $0 as? UIButton }) {
+                let frame = button.convert(button.bounds, to: secondPicker.view)
+                XCTAssertGreaterThanOrEqual(frame.minY, safe.minY)
+                XCTAssertLessThanOrEqual(frame.maxY, safe.maxY, "Choices must clear the bottom arrow")
+                XCTAssertEqual(frame.midY, safe.midY, accuracy: 0.1)
+            }
+            writeReviewImage(UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }, named: isWhite ? "WhitePromotionBottomArrow" : "BlackPromotionBottomArrow")
             let knight = try XCTUnwrap(descendants(of: secondPicker.view).first {
                 $0.accessibilityIdentifier == "promote-n"
             } as? UIButton)
@@ -276,6 +298,52 @@ final class GameTests: XCTestCase {
             XCTAssertNil(game.pendingPromotion)
             XCTAssertEqual(game.active?.moves.count, 1)
             XCTAssertEqual(game.active?.reason, "Insufficient material")
+        }
+    }
+
+    func testPromotionPickerLayoutClearsEitherArrow() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = try XCTUnwrap(scene.windows.first)
+        let original = window.rootViewController
+        defer { window.rootViewController = original }
+        let (game, _) = try await makeGame()
+        var record = SavedGame(playerWhite: true, isPuzzle: true)
+        record.baseFEN = "1r5k/P7/8/8/8/8/8/7K w - - 0 1"
+        game.openPuzzle(record)
+        try await settle(game)
+        let moves = try XCTUnwrap(game.snapshot).legal.filter { $0.promotion != nil }
+        for isWhite in [true, false] {
+            for direction in [UIPopoverArrowDirection.up, .down] {
+                let host = UIViewController()
+                window.rootViewController = host
+                window.makeKeyAndVisible()
+                let anchor = UIView(frame: CGRect(x: window.bounds.midX - 24,
+                                                  y: window.bounds.midY - 24, width: 48, height: 48))
+                host.view.addSubview(anchor)
+                let picker = PromotionPickerViewController(moves: moves, isWhite: isWhite)
+                picker.modalPresentationStyle = .popover
+                let popover = try XCTUnwrap(picker.popoverPresentationController)
+                popover.sourceView = anchor
+                popover.sourceRect = anchor.bounds
+                popover.permittedArrowDirections = direction
+                let delegate = GameViewController(game: game)
+                popover.delegate = delegate
+                host.present(picker, animated: false)
+                try await Task.sleep(nanoseconds: 150_000_000)
+                picker.view.layoutIfNeeded()
+                XCTAssertEqual(popover.arrowDirection, direction)
+                let safe = picker.view.safeAreaLayoutGuide.layoutFrame
+                let buttons = descendants(of: picker.view).compactMap { $0 as? UIButton }
+                XCTAssertEqual(buttons.count, 4)
+                for button in buttons {
+                    let frame = button.convert(button.bounds, to: picker.view)
+                    XCTAssertGreaterThanOrEqual(frame.minY, safe.minY)
+                    XCTAssertLessThanOrEqual(frame.maxY, safe.maxY)
+                    XCTAssertEqual(frame.midY, safe.midY, accuracy: 0.1)
+                    XCTAssertGreaterThanOrEqual(frame.height, 44, "Choice targets remain tappable")
+                }
+                picker.dismiss(animated: false)
+            }
         }
     }
 

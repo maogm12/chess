@@ -36,7 +36,8 @@ no signing identity or credentials are committed here.
   delete like any other game. The app has no photo import: positions are entered by hand.
 - Legal destinations, captures, castling, en passant, and all four promotion choices.
   Promotion first previews the pawn on its destination, then opens an icon popover anchored
-  to that square. Choosing a piece commits the move; cancelling restores the position without
+  to that square. Icons stay centered inside the popover body, clear of its arrow.
+  Choosing a piece commits the move; tapping outside cancels and restores the position without
   changing the saved history, including captures and Black's board perspective.
   The preview stays on the destination until the engine accepts the selected promotion.
 - Check, checkmate, stalemate, insufficient material, 50-move, and threefold repetition detection.

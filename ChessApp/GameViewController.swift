@@ -525,14 +525,9 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
               view.window != nil else { return }
         let picker = PromotionPickerViewController(moves: game.promotions, isWhite: game.whiteToMove)
         picker.modalPresentationStyle = .popover
-        picker.preferredContentSize = CGSize(width: 252, height: 100)
         picker.onSelect = { [weak self, weak picker] move in
             self?.promotionPicker = nil
             self?.game.play(move)
-            picker?.dismiss(animated: true)
-        }
-        picker.onCancel = { [weak self, weak picker] in
-            self?.cancelPromotion()
             picker?.dismiss(animated: true)
         }
         if let popover = picker.popoverPresentationController {
@@ -632,12 +627,12 @@ final class PromotionPickerViewController: UIViewController {
     private let moves: [LegalMove]
     private let isWhite: Bool
     var onSelect: ((LegalMove) -> Void)?
-    var onCancel: (() -> Void)?
 
     init(moves: [LegalMove], isWhite: Bool) {
         self.moves = moves
         self.isWhite = isWhite
         super.init(nibName: nil, bundle: nil)
+        preferredContentSize = CGSize(width: 252, height: 66)
     }
 
     @available(*, unavailable)
@@ -667,14 +662,17 @@ final class PromotionPickerViewController: UIViewController {
             button.addAction(UIAction { [weak self] _ in self?.onSelect?(move) }, for: .touchUpInside)
             choices.addArrangedSubview(button)
         }
-        let cancel = chessButton("Cancel") { [weak self] in self?.onCancel?() }
-        cancel.accessibilityIdentifier = "cancel-promotion"
-        let stack = UIStackView(arrangedSubviews: [choices, cancel])
-        stack.axis = .vertical
-        stack.spacing = 4
-        choices.heightAnchor.constraint(equalToConstant: 50).isActive = true
-        view.addSubview(stack)
-        stack.pinEdges(to: view, insets: .init(top: 8, left: 8, bottom: 4, right: 8))
+        view.addSubview(choices)
+        choices.translatesAutoresizingMaskIntoConstraints = false
+        // UIKit includes the arrow in the root view's bounds. Keep the choices
+        // inside the body for arrows above or below the promotion square.
+        let body = view.safeAreaLayoutGuide
+        NSLayoutConstraint.activate([
+            choices.leadingAnchor.constraint(equalTo: body.leadingAnchor, constant: 8),
+            choices.trailingAnchor.constraint(equalTo: body.trailingAnchor, constant: -8),
+            choices.topAnchor.constraint(equalTo: body.topAnchor, constant: 8),
+            choices.bottomAnchor.constraint(equalTo: body.bottomAnchor, constant: -8)
+        ])
     }
 }
 
