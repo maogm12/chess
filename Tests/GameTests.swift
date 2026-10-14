@@ -170,6 +170,88 @@ final class GameTests: XCTestCase {
         XCTAssertFalse(game.inputAllowed)
     }
 
+    func testPromotionPopoverPreviewsDestinationAndRestoresOnCancel() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = try XCTUnwrap(scene.windows.first)
+        let original = window.rootViewController
+        defer { window.rootViewController = original }
+        for isWhite in [true, false] {
+            let (game, _) = try await makeGame()
+            var record = SavedGame(playerWhite: isWhite, isPuzzle: true)
+            record.baseFEN = isWhite ? "1r5k/P7/8/8/8/8/8/7K w - - 0 1" :
+                "7k/8/8/8/8/8/p7/1R5K b - - 0 1"
+            game.openPuzzle(record)
+            try await settle(game)
+            let screen = GameViewController(game: game)
+            window.rootViewController = ChessNavigationController(rootViewController: screen)
+            window.makeKeyAndVisible()
+            window.layoutIfNeeded()
+            screen.updateView()
+            screen.view.layoutIfNeeded()
+            let board = try XCTUnwrap(descendants(of: screen.view).first { $0 is ChessBoardView } as? ChessBoardView)
+            let fromIndex = squareIndex(isWhite ? "a7" : "a2")
+            let toIndex = squareIndex(isWhite ? "b8" : "b1")
+            let from = try XCTUnwrap(board.promotionAnchor(at: fromIndex) as? UIControl)
+            let to = try XCTUnwrap(board.promotionAnchor(at: toIndex) as? UIControl)
+            let pawn = try XCTUnwrap(game.board[fromIndex])
+            func beginPromotion() async throws -> PromotionPickerViewController {
+                from.sendActions(for: .touchUpInside)
+                to.sendActions(for: .touchUpInside)
+                screen.updateView()
+                try await waitUntil("promotion popover") { screen.presentedViewController is PromotionPickerViewController }
+                try await Task.sleep(nanoseconds: 350_000_000)
+                return try XCTUnwrap(screen.presentedViewController as? PromotionPickerViewController)
+            }
+            let picker = try await beginPromotion()
+            let popover = try XCTUnwrap(picker.popoverPresentationController)
+            XCTAssertTrue(popover.sourceView === to, "The arrow points at the destination in both perspectives")
+            XCTAssertEqual(popover.sourceRect, to.bounds)
+            XCTAssertEqual(screen.adaptivePresentationStyle(for: popover), .none)
+            XCTAssertTrue(to.accessibilityLabel?.contains("pawn") == true)
+            XCTAssertTrue(from.accessibilityLabel?.contains("Empty") == true)
+            XCTAssertFalse(to.isUserInteractionEnabled)
+            let glyph = try XCTUnwrap(descendants(of: board).compactMap { $0 as? ChessPieceView }
+                .first { $0.piece?.id == pawn.id })
+            XCTAssertEqual(glyph.frame.midX, to.frame.midX, accuracy: 0.1)
+            XCTAssertEqual(glyph.frame.midY, to.frame.midY, accuracy: 0.1)
+            XCTAssertEqual(game.board[fromIndex], pawn, "Preview does not alter engine state")
+            XCTAssertEqual(game.board[toIndex]?.name, "rook")
+            XCTAssertTrue(game.active?.moves.isEmpty == true)
+            let choices = descendants(of: picker.view).compactMap { $0 as? UIButton }
+                .filter { $0.accessibilityIdentifier?.hasPrefix("promote-") == true }
+            XCTAssertEqual(choices.count, 4)
+            for button in choices {
+                let artwork = try XCTUnwrap(button.subviews.first { $0 is ChessPieceArtworkView } as? ChessPieceArtworkView)
+                XCTAssertEqual(artwork.isWhite, isWhite)
+                XCTAssertNil(button.title(for: .normal), "Choices display piece artwork")
+            }
+            writeReviewImage(UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }, named: isWhite ? "WhitePromotionPopover" : "BlackPromotionPopover")
+            let cancel = try XCTUnwrap(descendants(of: picker.view).first {
+                $0.accessibilityIdentifier == "cancel-promotion"
+            } as? UIButton)
+            cancel.sendActions(for: .touchUpInside)
+            try await waitUntil("promotion cancelled") { screen.presentedViewController == nil }
+            screen.updateView()
+            XCTAssertTrue(game.promotions.isEmpty)
+            XCTAssertEqual(glyph.frame.midX, from.frame.midX, accuracy: 0.1)
+            XCTAssertEqual(glyph.frame.midY, from.frame.midY, accuracy: 0.1)
+            XCTAssertTrue(to.accessibilityLabel?.contains("rook") == true)
+            XCTAssertTrue(game.active?.moves.isEmpty == true)
+            let secondPicker = try await beginPromotion()
+            let knight = try XCTUnwrap(descendants(of: secondPicker.view).first {
+                $0.accessibilityIdentifier == "promote-n"
+            } as? UIButton)
+            knight.sendActions(for: .touchUpInside)
+            try await settle(game)
+            try await waitUntil("promotion selection dismissed") { screen.presentedViewController == nil }
+            XCTAssertEqual(game.board[toIndex]?.name, "knight")
+            XCTAssertEqual(game.active?.moves.count, 1)
+            XCTAssertEqual(game.active?.reason, "Insufficient material")
+        }
+    }
+
     func testPhoneWindowAndRenderScreens() async throws {
         let (game, _) = try await makeGame()
         game.settings.moveRatingsEnabled = true

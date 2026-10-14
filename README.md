@@ -33,6 +33,9 @@ no signing identity or credentials are committed here.
   starts on its turn. Saving stores the position as a normal saved game, so puzzles replay, share, and
   delete like any other game. The app has no photo import: positions are entered by hand.
 - Legal destinations, captures, castling, en passant, and all four promotion choices.
+  Promotion first previews the pawn on its destination, then opens an icon popover anchored
+  to that square. Choosing a piece commits the move; cancelling restores the position without
+  changing the saved history, including captures and Black's board perspective.
 - Check, checkmate, stalemate, insufficient material, 50-move, and threefold repetition detection.
   In this practice app the 50-move and threefold draws are automatically accepted.
   Selection outlines the square in green without changing its fill; recent moves use a muted
