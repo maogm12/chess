@@ -150,6 +150,8 @@ this file is for reusable project knowledge.
   (`PRODUCT_BUNDLE_IDENTIFIER`).
 - Verification: `testForkChessIdentityAndPGNBranding` and
   `testRenamedLibraryPreservesLegacyGamesAndNeverOverwritesNewerSaves` pass
-  inside the full suite (32 tests, iPhone 17 Pro / iOS 26.5). The built
-  `ForkChess.app` reports `CFBundleIdentifier com.maogm12.forkchess` and
-  `CFBundleDisplayName ForkChess`.
+  inside the full suite, 35 tests on iPhone 17 Pro / iOS 26.5 locally and in
+  GitHub Actions run `38637299742`. The built `ForkChess.app` reports
+  `CFBundleIdentifier com.maogm12.forkchess` and
+  `CFBundleDisplayName ForkChess`, and the CI screenshot of the home screen
+  shows the ForkChess wordmark.
