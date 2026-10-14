@@ -19,7 +19,7 @@ final class ChessBoardView: UIView {
         grid.layer.cornerRadius = 5
         grid.clipsToBounds = true
         grid.layer.borderWidth = 0.5
-        grid.layer.borderColor = QuietChessTheme.navy.withAlphaComponent(0.1).cgColor
+        grid.layer.borderColor = ForkChessTheme.navy.withAlphaComponent(0.1).cgColor
         addSubview(grid)
         for index in 0..<64 {
             let square = BoardSquare()
@@ -29,8 +29,8 @@ final class ChessBoardView: UIView {
             squares.append(square)
         }
         for index in 0..<8 {
-            let rank = chessLabel(size: 10, weight: .semibold, color: QuietChessTheme.slate)
-            let file = chessLabel(size: 10, weight: .semibold, color: QuietChessTheme.slate)
+            let rank = chessLabel(size: 10, weight: .semibold, color: ForkChessTheme.slate)
+            let file = chessLabel(size: 10, weight: .semibold, color: ForkChessTheme.slate)
             rank.textAlignment = .left
             file.textAlignment = .right
             [rank, file].forEach { $0.isAccessibilityElement = false; addSubview($0) }
@@ -235,7 +235,7 @@ private final class BoardEndingMarker: UIView {
     var ending: Ending = .checkmate { didSet { setNeedsDisplay() } }
 
     override func draw(_ rect: CGRect) {
-        (ending == .checkmate ? Self.mateColor : QuietChessTheme.slate).setFill()
+        (ending == .checkmate ? Self.mateColor : ForkChessTheme.slate).setFill()
         UIBezierPath(ovalIn: bounds).fill()
         let path = UIBezierPath()
         let inset = bounds.width * 0.31
@@ -280,11 +280,11 @@ private final class BoardSquare: UIButton {
         let circle = UIBezierPath(ovalIn: CGRect(x: (bounds.width - diameter) / 2, y: (bounds.height - diameter) / 2,
                                                width: diameter, height: diameter))
         if occupied {
-            QuietChessTheme.navy.withAlphaComponent(0.35).setStroke()
+            ForkChessTheme.navy.withAlphaComponent(0.35).setStroke()
             circle.lineWidth = 3
             circle.stroke()
         } else {
-            QuietChessTheme.navy.withAlphaComponent(0.25).setFill()
+            ForkChessTheme.navy.withAlphaComponent(0.25).setFill()
             circle.fill()
         }
     }
@@ -303,8 +303,8 @@ final class ChessPieceView: ChessPieceArtworkView {
 }
 
 final class CapturedPiecesView: UIView {
-    private let sideLabel = chessLabel(size: 11, weight: .medium, color: QuietChessTheme.slate)
-    private let emptyLabel = chessLabel("—", size: 12, color: QuietChessTheme.slate.withAlphaComponent(0.45))
+    private let sideLabel = chessLabel(size: 11, weight: .medium, color: ForkChessTheme.slate)
+    private let emptyLabel = chessLabel("—", size: 12, color: ForkChessTheme.slate.withAlphaComponent(0.45))
     private var glyphs: [ChessPieceView] = []
     private var currentPieces: [BoardPiece] = []
     override init(frame: CGRect) {

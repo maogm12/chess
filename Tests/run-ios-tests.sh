@@ -41,8 +41,8 @@ PY
 
 # Keep the hosted UIKit tests in one simulator; they manipulate app windows.
 xcodebuild test \
-  -project ChessApp.xcodeproj \
-  -scheme LocalChess \
+  -project ForkChess.xcodeproj \
+  -scheme ForkChess \
   -destination "platform=iOS Simulator,id=$simulator_id" \
   -parallel-testing-enabled NO \
   -resultBundlePath "$output_dir/Regression.xcresult" \

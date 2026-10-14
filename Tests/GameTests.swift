@@ -1,7 +1,7 @@
 import XCTest
 import UIKit
 import Combine
-@testable import LocalChess
+@testable import ForkChess
 
 private final class TimelineTestPan: UIPanGestureRecognizer {
     var phase: UIGestureRecognizer.State = .possible
@@ -45,6 +45,57 @@ final class GameTests: XCTestCase {
         let move = try XCTUnwrap(game.snapshot?.legal.first { $0.uci == uci })
         game.play(move)
         try await settle(game)
+    }
+
+    func testForkChessIdentityAndPGNBranding() async throws {
+        XCTAssertEqual(Bundle.main.bundleIdentifier, "com.maogm12.forkchess")
+        XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String, "ForkChess")
+        XCTAssertEqual(Bundle(for: GameTests.self).bundleIdentifier, "com.maogm12.forkchess.tests")
+        let (game, _) = try await makeGame()
+        XCTAssertTrue(game.pgn(for: SavedGame(playerWhite: true)).hasPrefix("[Event \"ForkChess practice\"]"))
+    }
+
+    func testRenamedLibraryPreservesLegacyGamesAndNeverOverwritesNewerSaves() async throws {
+        let files = FileManager.default
+        let support = files.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? files.removeItem(at: support) }
+        let fresh = try GameViewModel.libraryURL(in: support.appendingPathComponent("Fresh"))
+        XCTAssertEqual(fresh.lastPathComponent, "library.json")
+        XCTAssertEqual(fresh.deletingLastPathComponent().lastPathComponent, "ForkChess")
+        XCTAssertFalse(files.fileExists(atPath: fresh.path))
+
+        let legacyDirectory = support.appendingPathComponent("QuietChess")
+        try files.createDirectory(at: legacyDirectory, withIntermediateDirectories: true)
+        let legacyURL = legacyDirectory.appendingPathComponent("library.json")
+        var record = SavedGame(playerWhite: true)
+        record.moves = ["e2e4", "c7c5"]
+        record.notation = ["e4", "c5"]
+        record.fork(at: 0, seconds: 300)
+        var settings = PracticeSettings()
+        settings.skill = 11
+        let legacy = LocalLibrary(settings: settings, games: [record], activeID: record.id)
+        let original = try JSONEncoder().encode(legacy)
+        try original.write(to: legacyURL)
+
+        let migratedURL = try GameViewModel.libraryURL(in: support)
+        XCTAssertEqual(try Data(contentsOf: migratedURL), original)
+        XCTAssertEqual(try Data(contentsOf: legacyURL), original)
+        XCTAssertEqual(try migratedURL.deletingLastPathComponent()
+            .resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup, true)
+        let game = GameViewModel(storageURL: migratedURL)
+        try await waitUntil("migrated library ready") { game.ready }
+        XCTAssertEqual(game.settings.skill, 11)
+        XCTAssertEqual(game.active, record)
+        XCTAssertEqual(game.games, [record])
+        XCTAssertNil(game.errorMessage)
+
+        game.settings.skill = 17
+        let updated = try Data(contentsOf: migratedURL)
+        XCTAssertNotEqual(updated, original)
+        XCTAssertEqual(try GameViewModel.libraryURL(in: support), migratedURL)
+        XCTAssertEqual(try Data(contentsOf: migratedURL), updated)
+        XCTAssertEqual(try Data(contentsOf: legacyURL), original)
+        XCTAssertEqual(try JSONDecoder().decode(LocalLibrary.self, from: updated).settings.skill, 17)
     }
 
     func testWhiteGameHintUndoAndResign() async throws {
@@ -409,7 +460,7 @@ final class GameTests: XCTestCase {
         let side: CGFloat = 96
         let sheetSize = CGSize(width: side * CGFloat(kinds.count), height: side * 2)
         let sheet = UIGraphicsImageRenderer(size: sheetSize).image { context in
-            QuietChessTheme.background.setFill()
+            ForkChessTheme.background.setFill()
             context.fill(CGRect(origin: .zero, size: sheetSize))
             for (row, isWhite) in [true, false].enumerated() {
                 for (column, kind) in kinds.enumerated() {
@@ -436,7 +487,7 @@ final class GameTests: XCTestCase {
                 artwork.kind = kind
                 artwork.isWhite = isWhite
                 let rendered = UIGraphicsImageRenderer(size: frame.size).image { context in
-                    QuietChessTheme.background.setFill()
+                    ForkChessTheme.background.setFill()
                     context.fill(frame)
                     artwork.draw(frame)
                 }

@@ -59,9 +59,9 @@ final class SettingsViewController: GameObservingViewController, UITableViewData
         let row = sections[indexPath.section].rows[indexPath.row]
         let cell = UITableViewCell(style: .value1, reuseIdentifier: nil)
         cell.backgroundColor = .white
-        cell.textLabel?.textColor = QuietChessTheme.navy
+        cell.textLabel?.textColor = ForkChessTheme.navy
         cell.textLabel?.numberOfLines = 0
-        cell.detailTextLabel?.textColor = QuietChessTheme.slate
+        cell.detailTextLabel?.textColor = ForkChessTheme.slate
         cell.selectionStyle = .none
         switch row {
         case .side:
@@ -84,7 +84,7 @@ final class SettingsViewController: GameObservingViewController, UITableViewData
             slider.maximumValue = 20
             slider.value = Float(game.settings.skill)
             slider.isContinuous = false
-            slider.tintColor = QuietChessTheme.accent
+            slider.tintColor = ForkChessTheme.accent
             slider.accessibilityLabel = "Bot skill level"
             slider.accessibilityValue = "\(game.settings.skill) of 20"
             slider.addAction(UIAction { [weak self, weak slider] _ in
@@ -130,13 +130,13 @@ final class SettingsViewController: GameObservingViewController, UITableViewData
         case .privacy:
             cell.textLabel?.text = "No analytics, ads, or cloud sync. Games are saved automatically, including when you leave the app. Share a PGN only when you choose to."
             cell.textLabel?.font = .preferredFont(forTextStyle: .footnote)
-            cell.textLabel?.textColor = QuietChessTheme.slate
+            cell.textLabel?.textColor = ForkChessTheme.slate
         case .version:
-            cell.textLabel?.text = "Quiet Chess"
+            cell.textLabel?.text = "ForkChess"
             cell.detailTextLabel?.text = "1.0"
         case .license:
             cell.textLabel?.text = "Engine license (MIT)"
-            cell.textLabel?.textColor = QuietChessTheme.accent
+            cell.textLabel?.textColor = ForkChessTheme.accent
             cell.accessoryType = .disclosureIndicator
             cell.selectionStyle = .default
         }
@@ -167,7 +167,7 @@ final class SettingsViewController: GameObservingViewController, UITableViewData
     private func toggle(_ label: String, value: Bool, changed: @escaping (Bool) -> Void) -> UISwitch {
         let control = UISwitch()
         control.isOn = value
-        control.onTintColor = QuietChessTheme.accent
+        control.onTintColor = ForkChessTheme.accent
         control.accessibilityLabel = label
         control.addAction(UIAction { [weak control] _ in
             guard let control else { return }; changed(control.isOn)
@@ -186,11 +186,11 @@ private final class LicenseViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Arasan · MIT"
-        view.backgroundColor = QuietChessTheme.background
+        view.backgroundColor = ForkChessTheme.background
         let text = UITextView()
         text.isEditable = false
         text.backgroundColor = .clear
-        text.textColor = QuietChessTheme.navy
+        text.textColor = ForkChessTheme.navy
         text.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
         text.textContainerInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
         if let url = Bundle.main.url(forResource: "LICENSE-Arasan", withExtension: "txt"),

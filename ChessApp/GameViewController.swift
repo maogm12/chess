@@ -80,16 +80,16 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         timerLabel.accessibilityLabel = "Practice time remaining"
         timerLabel.frame = CGRect(x: 24, y: 0, width: 84, height: 30)
         spinner.frame = CGRect(x: 0, y: 5, width: 20, height: 20)
-        hintLabel.backgroundColor = QuietChessTheme.panel
+        hintLabel.backgroundColor = ForkChessTheme.panel
         hintLabel.layer.cornerRadius = 10
         hintLabel.clipsToBounds = true
         hintLabel.textAlignment = .center
         movesTable.dataSource = self
         movesTable.delegate = self
-        movesTable.separatorColor = QuietChessTheme.line
+        movesTable.separatorColor = ForkChessTheme.line
         movesTable.backgroundColor = .white
         movesTable.layer.cornerRadius = 12
-        movesTable.layer.borderColor = QuietChessTheme.line.cgColor
+        movesTable.layer.borderColor = ForkChessTheme.line.cgColor
         movesTable.layer.borderWidth = 0.6
         movesTable.clipsToBounds = true
         movesTable.allowsSelection = false
@@ -270,7 +270,7 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
             }
         }
         if notation.isEmpty && !game.gameOver && game.snapshot?.result == "*" {
-            let empty = chessLabel("The board is yours.\nTap a piece, then a highlighted square.", size: 13, color: QuietChessTheme.slate)
+            let empty = chessLabel("The board is yours.\nTap a piece, then a highlighted square.", size: 13, color: ForkChessTheme.slate)
             empty.textAlignment = .center
             movesTable.backgroundView = empty
         } else { movesTable.backgroundView = nil }
@@ -489,7 +489,7 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
     private func updateTimer() {
         let seconds = Int(ceil(game.practiceTimeRemaining()))
         timerLabel.text = String(format: "%02d:%02d", seconds / 60, seconds % 60)
-        timerLabel.textColor = seconds == 0 ? .systemRed : QuietChessTheme.navy
+        timerLabel.textColor = seconds == 0 ? .systemRed : ForkChessTheme.navy
         timerLabel.accessibilityValue = "\(seconds / 60) minutes, \(seconds % 60) seconds"
     }
 
@@ -497,8 +497,8 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         let button = chessButton(title, icon: icon, action: action)
         var configuration = button.configuration
         configuration?.imagePlacement = .top
-        configuration?.baseForegroundColor = QuietChessTheme.navy
-        configuration?.background.backgroundColor = QuietChessTheme.panel
+        configuration?.baseForegroundColor = ForkChessTheme.navy
+        configuration?.background.backgroundColor = ForkChessTheme.panel
         configuration?.background.cornerRadius = 12
         configuration?.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attributes in
             var result = attributes
@@ -677,7 +677,7 @@ final class PromotionPickerViewController: UIViewController {
 }
 
 private final class MoveCell: UITableViewCell {
-    private let number = chessLabel(size: 14, color: QuietChessTheme.slate)
+    private let number = chessLabel(size: 14, color: ForkChessTheme.slate)
     private let white = UIButton(configuration: .plain())
     private let black = UIButton(configuration: .plain())
     private let whiteRating = chessLabel(size: 11, weight: .semibold)
@@ -712,7 +712,7 @@ private final class MoveCell: UITableViewCell {
             guard let self, let ply = self.blackPly else { return }; self.select?(ply)
         }, for: .touchUpInside)
         for button in [whiteRedo, blackRedo] {
-            button.configuration = .quietChess(title: "重走", background: QuietChessTheme.accent,
+            button.configuration = .forkChess(title: "重走", background: ForkChessTheme.accent,
                                                 foreground: .white, size: 12,
                                                 insets: .init(top: 3, leading: 5, bottom: 3, trailing: 5))
             let width = button.widthAnchor.constraint(equalToConstant: 44)
@@ -740,8 +740,8 @@ private final class MoveCell: UITableViewCell {
             let ply = index + 1
             var configuration = label.configuration
             configuration?.title = exists ? notation[index] : "—"
-            configuration?.baseForegroundColor = selectedPly == ply ? QuietChessTheme.accent : QuietChessTheme.navy
-            configuration?.background.backgroundColor = selectedPly == ply ? QuietChessTheme.panel : .clear
+            configuration?.baseForegroundColor = selectedPly == ply ? ForkChessTheme.accent : ForkChessTheme.navy
+            configuration?.background.backgroundColor = selectedPly == ply ? ForkChessTheme.panel : .clear
             configuration?.contentInsets = NSDirectionalEdgeInsets(top: 3, leading: 4, bottom: 3, trailing: 4)
             configuration?.image = exists && forks.contains(ply) ? UIImage(systemName: "arrow.triangle.branch") : nil
             configuration?.imagePlacement = .trailing
@@ -766,34 +766,34 @@ private final class MoveCell: UITableViewCell {
             } else { ratingLabel.isHidden = true }
         }
         backgroundColor = selectedPly == whitePly || selectedPly == blackPly
-            ? QuietChessTheme.panel.withAlphaComponent(0.7) : .white
+            ? ForkChessTheme.panel.withAlphaComponent(0.7) : .white
     }
 }
 
 private final class ForkCell: UITableViewCell {
-    private let title = chessLabel(size: 12, weight: .medium, color: QuietChessTheme.accent)
-    private let caption = chessLabel("左右滑动切换分支", size: 11, color: QuietChessTheme.slate)
+    private let title = chessLabel(size: 12, weight: .medium, color: ForkChessTheme.accent)
+    private let caption = chessLabel("左右滑动切换分支", size: 11, color: ForkChessTheme.slate)
     private let pages = UIPageControl()
     private var options: [UUID] = []
     private var select: ((UUID) -> Void)?
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
-        backgroundColor = QuietChessTheme.panel
+        backgroundColor = ForkChessTheme.panel
         selectionStyle = .none
         let labels = UIStackView(arrangedSubviews: [title, caption])
         labels.axis = .vertical
         labels.spacing = 2
         let icon = UIImageView(image: UIImage(systemName: "arrow.triangle.branch"))
-        icon.tintColor = QuietChessTheme.accent
+        icon.tintColor = ForkChessTheme.accent
         let row = UIStackView(arrangedSubviews: [icon, labels, pages])
         row.alignment = .center
         row.spacing = 8
         icon.widthAnchor.constraint(equalToConstant: 18).isActive = true
         icon.heightAnchor.constraint(equalToConstant: 18).isActive = true
         pages.widthAnchor.constraint(equalToConstant: 88).isActive = true
-        pages.pageIndicatorTintColor = QuietChessTheme.line
-        pages.currentPageIndicatorTintColor = QuietChessTheme.accent
+        pages.pageIndicatorTintColor = ForkChessTheme.line
+        pages.currentPageIndicatorTintColor = ForkChessTheme.accent
         pages.backgroundStyle = .minimal
         pages.addAction(UIAction { [weak self] _ in
             guard let self, self.options.indices.contains(self.pages.currentPage) else { return }

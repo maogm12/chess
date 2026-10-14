@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-test_dir=$(mktemp -d /tmp/quiet-chess-tests.XXXXXX)
+test_dir=$(mktemp -d /tmp/forkchess-tests.XXXXXX)
 # Prefer the Xcode toolchain, but fall back to the Command Line Tools copy
 # when the Xcode license gate blocks xcrun (no sudo in this environment).
 if xcrun clang++ --version >/dev/null 2>&1; then

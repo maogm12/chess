@@ -1,7 +1,7 @@
 import UIKit
 import Combine
 
-enum QuietChessTheme {
+enum ForkChessTheme {
     static let background = UIColor(red: 0.975, green: 0.977, blue: 0.967, alpha: 1)
     static let navy = UIColor(red: 0.055, green: 0.125, blue: 0.220, alpha: 1)
     static let slate = UIColor(red: 0.35, green: 0.43, blue: 0.52, alpha: 1)
@@ -46,12 +46,12 @@ final class ChessNavigationController: UINavigationController {
         super.viewDidLoad()
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = QuietChessTheme.background
-        appearance.titleTextAttributes = [.foregroundColor: QuietChessTheme.navy]
+        appearance.backgroundColor = ForkChessTheme.background
+        appearance.titleTextAttributes = [.foregroundColor: ForkChessTheme.navy]
         navigationBar.standardAppearance = appearance
         navigationBar.scrollEdgeAppearance = appearance
         navigationBar.compactAppearance = appearance
-        navigationBar.tintColor = QuietChessTheme.accent
+        navigationBar.tintColor = ForkChessTheme.accent
         overrideUserInterfaceStyle = .light
     }
 }
@@ -71,8 +71,8 @@ class GameObservingViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = QuietChessTheme.background
-        view.tintColor = QuietChessTheme.accent
+        view.backgroundColor = ForkChessTheme.background
+        view.tintColor = ForkChessTheme.accent
         observation = game.objectWillChange.sink { [weak self] in
             // Published sends before its value changes. Coalesce a batch into
             // one render on the next main-loop turn, after all values are set.
@@ -123,7 +123,7 @@ class GameObservingViewController: UIViewController {
 }
 
 func chessLabel(_ text: String = "", size: CGFloat = 17, weight: UIFont.Weight = .regular,
-                color: UIColor = QuietChessTheme.navy) -> UILabel {
+                color: UIColor = ForkChessTheme.navy) -> UILabel {
     let label = UILabel()
     label.text = text
     label.font = .systemFont(ofSize: size, weight: weight)
@@ -134,7 +134,7 @@ func chessLabel(_ text: String = "", size: CGFloat = 17, weight: UIFont.Weight =
 }
 
 func chessSerifLabel(_ text: String = "", size: CGFloat = 22, weight: UIFont.Weight = .semibold,
-                     color: UIColor = QuietChessTheme.navy) -> UILabel {
+                     color: UIColor = ForkChessTheme.navy) -> UILabel {
     let label = chessLabel(text, size: size, weight: weight, color: color)
     if let descriptor = label.font.fontDescriptor.withDesign(.serif) {
         label.font = UIFont(descriptor: descriptor, size: size)
@@ -146,8 +146,8 @@ func chessButton(_ title: String, icon: String? = nil, primary: Bool = false,
                  action: @escaping () -> Void) -> UIButton {
     var configuration = primary ? UIButton.Configuration.filled() : .plain()
     configuration.title = title
-    configuration.baseForegroundColor = primary ? .white : QuietChessTheme.accent
-    configuration.baseBackgroundColor = QuietChessTheme.accent
+    configuration.baseForegroundColor = primary ? .white : ForkChessTheme.accent
+    configuration.baseBackgroundColor = ForkChessTheme.accent
     configuration.cornerStyle = .medium
     if let icon {
         configuration.image = UIImage(systemName: icon)
@@ -160,16 +160,16 @@ extension UIButton.Configuration {
     /// The app's card/button look: flat theme fill, shared corner radius, optional leading icon
     /// and a secondary line of text. Used for the home cards so they match the rest of the app
     /// instead of borrowing chrome from a reference screenshot.
-    static func quietChess(title: String, subtitle: String? = nil, icon: String? = nil,
-                           background: UIColor = QuietChessTheme.panel,
-                           foreground: UIColor = QuietChessTheme.navy,
+    static func forkChess(title: String, subtitle: String? = nil, icon: String? = nil,
+                           background: UIColor = ForkChessTheme.panel,
+                           foreground: UIColor = ForkChessTheme.navy,
                            size: CGFloat = 17, weight: UIFont.Weight = .semibold,
                            alignment: UIButton.Configuration.TitleAlignment = .center,
                            insets: NSDirectionalEdgeInsets = .init(top: 14, leading: 16, bottom: 14, trailing: 16))
         -> UIButton.Configuration {
         var configuration = UIButton.Configuration.plain()
         configuration.background.backgroundColor = background
-        configuration.background.cornerRadius = QuietChessTheme.radius
+        configuration.background.cornerRadius = ForkChessTheme.radius
         configuration.baseForegroundColor = foreground
         configuration.contentInsets = insets
         configuration.titleAlignment = alignment
@@ -180,7 +180,7 @@ extension UIButton.Configuration {
         if let subtitle {
             var line = AttributedString(subtitle)
             line.font = .systemFont(ofSize: 13)
-            line.foregroundColor = QuietChessTheme.slate
+            line.foregroundColor = ForkChessTheme.slate
             configuration.attributedSubtitle = line
         }
         if let icon {

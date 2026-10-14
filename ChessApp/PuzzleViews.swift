@@ -30,7 +30,7 @@ final class SetupSquare: UIControl {
         let size = max(8, min(11, bounds.height * 0.24))
         let attributes: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: size, weight: .semibold),
-            .foregroundColor: QuietChessTheme.slate
+            .foregroundColor: ForkChessTheme.slate
         ]
         let inset = max(2, min(bounds.width, bounds.height) * 0.07)
         for hint in hints {
@@ -75,7 +75,7 @@ final class SetupBoardView: UIView {
         grid.layer.cornerRadius = 5
         grid.clipsToBounds = true
         grid.layer.borderWidth = 0.5
-        grid.layer.borderColor = QuietChessTheme.navy.withAlphaComponent(0.1).cgColor
+        grid.layer.borderColor = ForkChessTheme.navy.withAlphaComponent(0.1).cgColor
         addSubview(grid)
         for index in 0..<64 {
             let cell = SetupSquare()
@@ -145,7 +145,7 @@ final class SetupBoardView: UIView {
             } ?? "Empty square"
             cell.accessibilityLabel = "\(coordinate), \(name)"
             cell.accessibilityTraits = selectedSquare == index ? [.button, .selected] : .button
-            cell.layer.borderColor = QuietChessTheme.accent.cgColor
+            cell.layer.borderColor = ForkChessTheme.accent.cgColor
             cell.layer.borderWidth = selectedSquare == index ? 2 : 0
             cell.layer.zPosition = selectedSquare == index ? 1 : 0
             cell.setNeedsDisplay()
@@ -170,7 +170,7 @@ final class PiecePaletteView: UIView {
             super.init(frame: frame)
             layer.cornerRadius = 8
             layer.cornerCurve = .continuous
-            eraser.tintColor = QuietChessTheme.slate
+            eraser.tintColor = ForkChessTheme.slate
             eraser.contentMode = .scaleAspectFit
             [glyph, eraser].forEach { $0.isUserInteractionEnabled = false; addSubview($0) }
             refresh()
@@ -185,9 +185,9 @@ final class PiecePaletteView: UIView {
         }
 
         private func refresh() {
-            backgroundColor = chosen ? QuietChessTheme.panel : .clear
+            backgroundColor = chosen ? ForkChessTheme.panel : .clear
             layer.borderWidth = chosen ? 1.5 : 0
-            layer.borderColor = QuietChessTheme.accent.cgColor
+            layer.borderColor = ForkChessTheme.accent.cgColor
             accessibilityTraits = chosen ? [.button, .selected] : .button
             if !isEnabled { accessibilityTraits.insert(.notEnabled) }
         }

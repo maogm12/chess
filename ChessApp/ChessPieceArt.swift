@@ -2,7 +2,7 @@ import UIKit
 
 /// Vector artwork for the chess pieces, converted from the supplied 48×48 SVG icon set.
 /// Keeping the geometry as paths (instead of raster assets) means every piece stays crisp at
-/// board size and inside the captured-piece trays, and the colors follow `QuietChessTheme`.
+/// board size and inside the captured-piece trays, and the colors follow `ForkChessTheme`.
 
 enum ChessPieceInk {
     case body
@@ -399,5 +399,5 @@ enum ChessPiecePalette {
     static func body(isWhite: Bool) -> UIColor {
         isWhite ? UIColor(red: 1.0, green: 0.98, blue: 0.94, alpha: 1) : ink
     }
-    static let ink = QuietChessTheme.navy
+    static let ink = ForkChessTheme.navy
 }

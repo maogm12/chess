@@ -7,9 +7,9 @@ final class PuzzleEditorViewController: UIViewController, UIPopoverPresentationC
 
     private let board = SetupBoardView()
     private let sideRow = UIView()
-    private let sideLabel = chessLabel("You play", size: 13, weight: .semibold, color: QuietChessTheme.slate)
+    private let sideLabel = chessLabel("You play", size: 13, weight: .semibold, color: ForkChessTheme.slate)
     private let sideControl = UISegmentedControl(items: ["White", "Black"])
-    private let hint = chessLabel("", size: 13, color: QuietChessTheme.slate)
+    private let hint = chessLabel("", size: 13, color: ForkChessTheme.slate)
     private lazy var clear = chessButton("Clear board", icon: "arrow.counterclockwise") { [weak self] in
         self?.board.clear()
     }
@@ -28,8 +28,8 @@ final class PuzzleEditorViewController: UIViewController, UIPopoverPresentationC
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "New puzzle"
-        view.backgroundColor = QuietChessTheme.background
-        view.tintColor = QuietChessTheme.accent
+        view.backgroundColor = ForkChessTheme.background
+        view.tintColor = ForkChessTheme.accent
         navigationItem.rightBarButtonItem = save
 
         board.colors = ChessBoardPalette.colors(for: game.settings.boardTheme)
@@ -39,10 +39,10 @@ final class PuzzleEditorViewController: UIViewController, UIPopoverPresentationC
 
         sideLabel.textAlignment = .left
         sideControl.selectedSegmentIndex = game.settings.playWhite ? 0 : 1
-        sideControl.selectedSegmentTintColor = QuietChessTheme.panel
-        sideControl.setTitleTextAttributes([.foregroundColor: QuietChessTheme.navy,
+        sideControl.selectedSegmentTintColor = ForkChessTheme.panel
+        sideControl.setTitleTextAttributes([.foregroundColor: ForkChessTheme.navy,
                                             .font: UIFont.systemFont(ofSize: 14, weight: .semibold)], for: .selected)
-        sideControl.setTitleTextAttributes([.foregroundColor: QuietChessTheme.slate,
+        sideControl.setTitleTextAttributes([.foregroundColor: ForkChessTheme.slate,
                                             .font: UIFont.systemFont(ofSize: 14)], for: .normal)
         sideControl.addAction(UIAction { [weak self] _ in self?.refresh() }, for: .valueChanged)
 
@@ -77,7 +77,7 @@ final class PuzzleEditorViewController: UIViewController, UIPopoverPresentationC
         save.isEnabled = issue == nil
         hint.text = ChessPosition.count(board.placement) == 0 ? instructions : issue ?? instructions
         let missingKing = !board.placement.contains("K") || !board.placement.contains("k")
-        hint.textColor = issue == nil || missingKing ? QuietChessTheme.slate : UIColor.systemRed.withAlphaComponent(0.85)
+        hint.textColor = issue == nil || missingKing ? ForkChessTheme.slate : UIColor.systemRed.withAlphaComponent(0.85)
     }
 
     private func showPieces(at index: Int, from square: SetupSquare) {
@@ -96,7 +96,7 @@ final class PuzzleEditorViewController: UIViewController, UIPopoverPresentationC
             popover.sourceView = square
             popover.sourceRect = square.bounds
             popover.permittedArrowDirections = [.up, .down]
-            popover.backgroundColor = QuietChessTheme.background
+            popover.backgroundColor = ForkChessTheme.background
             popover.delegate = self
         }
         present(picker, animated: true)
@@ -140,12 +140,12 @@ final class PuzzleEditorViewController: UIViewController, UIPopoverPresentationC
 
 final class PuzzlePiecePickerViewController: UIViewController {
     let palette = PiecePaletteView()
-    let squareLabel = chessLabel(size: 13, weight: .semibold, color: QuietChessTheme.slate)
+    let squareLabel = chessLabel(size: 13, weight: .semibold, color: ForkChessTheme.slate)
 
     override func viewDidLoad() {
         super.viewDidLoad()
         overrideUserInterfaceStyle = .light
-        view.backgroundColor = QuietChessTheme.background
+        view.backgroundColor = ForkChessTheme.background
         squareLabel.accessibilityTraits = .header
         [squareLabel, palette].forEach { view.addSubview($0) }
     }

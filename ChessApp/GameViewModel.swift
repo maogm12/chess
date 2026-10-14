@@ -326,19 +326,31 @@ final class GameViewModel: ObservableObject {
         return ready && !busy && !reviewing && active.lastPlayerMoveIndex != nil
     }
 
+    static func libraryURL(in applicationSupport: URL) throws -> URL {
+        let directory = applicationSupport.appendingPathComponent("ForkChess", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        var localDirectory = directory
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try localDirectory.setResourceValues(values)
+        let library = directory.appendingPathComponent("library.json")
+        let legacy = applicationSupport.appendingPathComponent("QuietChess", isDirectory: true)
+            .appendingPathComponent("library.json")
+        // Copy within this sandbox once, preserving the original and any newer library.
+        if !FileManager.default.fileExists(atPath: library.path),
+           FileManager.default.fileExists(atPath: legacy.path) {
+            try Data(contentsOf: legacy).write(to: library, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        }
+        return library
+    }
+
     init(storageURL: URL? = nil, now: @escaping () -> Date = Date.init) {
         self.now = now
         do {
             if let storageURL { saveURL = storageURL }
             else {
-                let directory = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-                    .appendingPathComponent("QuietChess", isDirectory: true)
-                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-                var localDirectory = directory
-                var values = URLResourceValues()
-                values.isExcludedFromBackup = true
-                try localDirectory.setResourceValues(values)
-                saveURL = directory.appendingPathComponent("library.json")
+                let applicationSupport = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+                saveURL = try Self.libraryURL(in: applicationSupport)
             }
             if let saveURL, FileManager.default.fileExists(atPath: saveURL.path) {
                 let library = try JSONDecoder().decode(LocalLibrary.self, from: Data(contentsOf: saveURL))
@@ -629,7 +641,7 @@ final class GameViewModel: ObservableObject {
         let date = formatter.string(from: record.date)
         let white = record.playerWhite ? "Player" : "Bot"
         let black = record.playerWhite ? "Bot" : "Player"
-        var output = "[Event \"Quiet Chess practice\"]\n[Date \"\(date)\"]\n[White \"\(white)\"]\n[Black \"\(black)\"]\n[Result \"\(record.result)\"]\n"
+        var output = "[Event \"ForkChess practice\"]\n[Date \"\(date)\"]\n[White \"\(white)\"]\n[Black \"\(black)\"]\n[Result \"\(record.result)\"]\n"
         if record.baseFEN != Self.startFEN { output += "[SetUp \"1\"]\n[FEN \"\(record.baseFEN)\"]\n" }
         output += "\n"
         for (i, move) in record.notation.enumerated() {

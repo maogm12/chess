@@ -3,14 +3,14 @@ import UIKit
 final class HomeViewController: GameObservingViewController {
     private let scroll = UIScrollView()
     private let header = UIView()
-    private let wordmark = chessSerifLabel("Quiet Chess", size: 21)
+    private let wordmark = chessSerifLabel("ForkChess", size: 21)
     private let settingsButton = UIButton(type: .system)
     private let whiteTile = SideTile(white: true)
     private let blackTile = SideTile(white: false)
     private let startButton = UIButton(type: .system)
     private let puzzleButton = UIButton(type: .system)
     private let historyButton = UIButton(type: .system)
-    private let loading = chessLabel("Preparing board…", size: 13, color: QuietChessTheme.slate)
+    private let loading = chessLabel("Preparing board…", size: 13, color: ForkChessTheme.slate)
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -45,14 +45,14 @@ final class HomeViewController: GameObservingViewController {
             .forEach { header.addSubview($0) }
         wordmark.accessibilityTraits = .header
         settingsButton.setImage(UIImage(systemName: "gearshape"), for: .normal)
-        settingsButton.tintColor = QuietChessTheme.accent
+        settingsButton.tintColor = ForkChessTheme.accent
         settingsButton.accessibilityLabel = "Settings"
         settingsButton.addAction(UIAction { [weak self] _ in self?.presentSettings() }, for: .touchUpInside)
 
         whiteTile.addAction(UIAction { [weak self] _ in self?.game.settings.playWhite = true }, for: .touchUpInside)
         blackTile.addAction(UIAction { [weak self] _ in self?.game.settings.playWhite = false }, for: .touchUpInside)
 
-        startButton.configuration = .quietChess(title: "Start new game", background: QuietChessTheme.accent,
+        startButton.configuration = .forkChess(title: "Start new game", background: ForkChessTheme.accent,
                                                 foreground: .white, size: 19,
                                                 insets: .init(top: 17, leading: 18, bottom: 17, trailing: 18))
         startButton.accessibilityLabel = "Start new game"
@@ -110,11 +110,11 @@ final class HomeViewController: GameObservingViewController {
         startButton.isEnabled = game.ready
         startButton.alpha = game.ready ? 1 : 0.45
         loading.isHidden = game.ready
-        puzzleButton.configuration = .quietChess(title: "Puzzle", subtitle: puzzleSubtitle,
+        puzzleButton.configuration = .forkChess(title: "Puzzle", subtitle: puzzleSubtitle,
                                                  icon: "puzzlepiece.extension", alignment: .leading)
         puzzleButton.contentHorizontalAlignment = .leading
         let count = "\(game.games.count) \(game.games.count == 1 ? "game" : "games")"
-        historyButton.configuration = .quietChess(title: "Game history", subtitle: count,
+        historyButton.configuration = .forkChess(title: "Game history", subtitle: count,
                                                   icon: "clock.arrow.circlepath", alignment: .leading)
         historyButton.contentHorizontalAlignment = .leading
         puzzleButton.accessibilityValue = puzzleSubtitle
@@ -154,7 +154,7 @@ private final class SideTile: UIControl {
         artwork.white = white
         badge.text = white ? "Play White" : "Play Black"
         badge.textAlignment = .center
-        layer.cornerRadius = QuietChessTheme.radius
+        layer.cornerRadius = ForkChessTheme.radius
         layer.cornerCurve = .continuous
         [artwork, badge].forEach { $0.isUserInteractionEnabled = false; addSubview($0) }
         accessibilityLabel = badge.text
@@ -174,11 +174,11 @@ private final class SideTile: UIControl {
     }
     func setSelected(_ selected: Bool) {
         isSelected = selected
-        backgroundColor = selected ? .white : QuietChessTheme.panel
-        layer.borderColor = (selected ? QuietChessTheme.accent : QuietChessTheme.line).cgColor
+        backgroundColor = selected ? .white : ForkChessTheme.panel
+        layer.borderColor = (selected ? ForkChessTheme.accent : ForkChessTheme.line).cgColor
         layer.borderWidth = selected ? 2 : 1
         badge.font = .systemFont(ofSize: 14, weight: selected ? .semibold : .regular)
-        badge.textColor = selected ? QuietChessTheme.navy : QuietChessTheme.slate
+        badge.textColor = selected ? ForkChessTheme.navy : ForkChessTheme.slate
         accessibilityValue = selected ? "Selected" : ""
         accessibilityTraits = selected ? [.button, .selected] : .button
     }

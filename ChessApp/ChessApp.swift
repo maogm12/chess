@@ -4,7 +4,7 @@ import UIKit
 final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, configurationForConnecting session: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {
-        let configuration = UISceneConfiguration(name: "Quiet Chess", sessionRole: session.role)
+        let configuration = UISceneConfiguration(name: "ForkChess", sessionRole: session.role)
         configuration.delegateClass = SceneDelegate.self
         return configuration
     }
@@ -21,7 +21,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let navigation = ChessNavigationController(rootViewController: HomeViewController(game: game))
         let window = UIWindow(windowScene: scene)
         window.overrideUserInterfaceStyle = .light
-        window.tintColor = QuietChessTheme.accent
+        window.tintColor = ForkChessTheme.accent
         window.rootViewController = navigation
         self.game = game
         self.navigation = navigation

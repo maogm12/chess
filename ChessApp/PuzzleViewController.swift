@@ -124,15 +124,15 @@ final class PuzzleTile: UICollectionViewCell {
 
     private let preview = UIImageView()
     private let title = chessLabel(size: 14, weight: .semibold)
-    private let detail = chessLabel(size: 12, color: QuietChessTheme.slate)
+    private let detail = chessLabel(size: 12, color: ForkChessTheme.slate)
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         contentView.backgroundColor = .white
-        contentView.layer.cornerRadius = QuietChessTheme.radius
+        contentView.layer.cornerRadius = ForkChessTheme.radius
         contentView.layer.cornerCurve = .continuous
         contentView.layer.borderWidth = 1
-        contentView.layer.borderColor = QuietChessTheme.line.cgColor
+        contentView.layer.borderColor = ForkChessTheme.line.cgColor
         preview.contentMode = .scaleAspectFill
         preview.clipsToBounds = true
         preview.layer.cornerRadius = 7
@@ -172,7 +172,7 @@ final class PuzzleTile: UICollectionViewCell {
     }
 
     override var isHighlighted: Bool {
-        didSet { contentView.backgroundColor = isHighlighted ? QuietChessTheme.panel : .white }
+        didSet { contentView.backgroundColor = isHighlighted ? ForkChessTheme.panel : .white }
     }
 }
 
@@ -182,16 +182,16 @@ final class AddPuzzleTile: UICollectionViewCell {
 
     private let symbol = UIImageView(image: UIImage(systemName: "plus"))
     private let title = chessLabel("New puzzle", size: 14, weight: .semibold)
-    private let detail = chessLabel("Set up a position by hand", size: 12, color: QuietChessTheme.slate)
+    private let detail = chessLabel("Set up a position by hand", size: 12, color: ForkChessTheme.slate)
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        contentView.backgroundColor = QuietChessTheme.panel
-        contentView.layer.cornerRadius = QuietChessTheme.radius
+        contentView.backgroundColor = ForkChessTheme.panel
+        contentView.layer.cornerRadius = ForkChessTheme.radius
         contentView.layer.cornerCurve = .continuous
         contentView.layer.borderWidth = 1
-        contentView.layer.borderColor = QuietChessTheme.accent.withAlphaComponent(0.5).cgColor
-        symbol.tintColor = QuietChessTheme.accent
+        contentView.layer.borderColor = ForkChessTheme.accent.withAlphaComponent(0.5).cgColor
+        symbol.tintColor = ForkChessTheme.accent
         detail.textAlignment = .center
         title.textAlignment = .center
         let stack = UIStackView(arrangedSubviews: [symbol, title, detail])

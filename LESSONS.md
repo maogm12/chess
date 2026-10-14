@@ -130,3 +130,26 @@ Use a short descriptive heading and record:
 
 Prefer updating a related entry. Keep run logs in the automation's memory;
 this file is for reusable project knowledge.
+
+## Renaming the app identifier creates a new data container
+
+- Date and problem: On 2026-10-14, Quiet Chess was renamed to ForkChess, with
+  bundle identifiers moving from `com.example.localchess` to
+  `com.maogm12.forkchess` and `...forkchess.tests`.
+- Cause: iOS keys an app's sandbox to its bundle identifier, so renaming it
+  installs alongside the old build and reads an empty Application Support
+  directory. The in-sandbox directory name (`QuietChess`) is also part of the
+  storage path but can be migrated by copying once.
+- Prevention: Keep `GameViewModel.libraryURL(in:)` tolerant of the legacy
+  directory by copying `QuietChess/library.json` into `ForkChess/` only when the
+  new file is absent, and never overwrite an existing ForkChess library.
+  Directory renames inside one sandbox can migrate data; bundle-identifier
+  changes cannot, so document that path for users with the old app installed.
+- Evidence: `ChessApp/GameViewModel.swift` (`libraryURL(in:)`), `README.md`
+  (Run and storage sections), and `ForkChess.xcodeproj/project.pbxproj`
+  (`PRODUCT_BUNDLE_IDENTIFIER`).
+- Verification: `testForkChessIdentityAndPGNBranding` and
+  `testRenamedLibraryPreservesLegacyGamesAndNeverOverwritesNewerSaves` pass
+  inside the full suite (32 tests, iPhone 17 Pro / iOS 26.5). The built
+  `ForkChess.app` reports `CFBundleIdentifier com.maogm12.forkchess` and
+  `CFBundleDisplayName ForkChess`.

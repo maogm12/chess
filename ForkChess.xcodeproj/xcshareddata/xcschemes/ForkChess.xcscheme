@@ -3,18 +3,18 @@
   <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES">
     <BuildActionEntries>
       <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">
-        <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="E10000000000000000000001" BuildableName="LocalChess.app" BlueprintName="LocalChess" ReferencedContainer="container:ChessApp.xcodeproj"/>
+        <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="E10000000000000000000001" BuildableName="ForkChess.app" BlueprintName="ForkChess" ReferencedContainer="container:ForkChess.xcodeproj"/>
       </BuildActionEntry>
     </BuildActionEntries>
   </BuildAction>
   <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES">
-    <Testables><TestableReference skipped="NO"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="AD0000000000000000000001" BuildableName="QuietChessTests.xctest" BlueprintName="QuietChessTests" ReferencedContainer="container:ChessApp.xcodeproj"/></TestableReference></Testables>
+    <Testables><TestableReference skipped="NO"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="AD0000000000000000000001" BuildableName="ForkChessTests.xctest" BlueprintName="ForkChessTests" ReferencedContainer="container:ForkChess.xcodeproj"/></TestableReference></Testables>
   </TestAction>
   <LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" allowLocationSimulation="YES">
-    <BuildableProductRunnable runnableDebuggingMode="0"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="E10000000000000000000001" BuildableName="LocalChess.app" BlueprintName="LocalChess" ReferencedContainer="container:ChessApp.xcodeproj"/></BuildableProductRunnable>
+    <BuildableProductRunnable runnableDebuggingMode="0"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="E10000000000000000000001" BuildableName="ForkChess.app" BlueprintName="ForkChess" ReferencedContainer="container:ForkChess.xcodeproj"/></BuildableProductRunnable>
   </LaunchAction>
   <ProfileAction buildConfiguration="Release" shouldUseLaunchSchemeArgsEnv="YES" savedToolIdentifier="" useCustomWorkingDirectory="NO" debugDocumentVersioning="YES">
-    <BuildableProductRunnable runnableDebuggingMode="0"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="E10000000000000000000001" BuildableName="LocalChess.app" BlueprintName="LocalChess" ReferencedContainer="container:ChessApp.xcodeproj"/></BuildableProductRunnable>
+    <BuildableProductRunnable runnableDebuggingMode="0"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="E10000000000000000000001" BuildableName="ForkChess.app" BlueprintName="ForkChess" ReferencedContainer="container:ForkChess.xcodeproj"/></BuildableProductRunnable>
   </ProfileAction>
   <AnalyzeAction buildConfiguration="Debug"/>
   <ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES"/>

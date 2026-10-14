@@ -52,11 +52,11 @@ final class HistoryViewController: GameObservingViewController, UITableViewDataS
         var configuration = cell.defaultContentConfiguration()
         configuration.text = record.title
         configuration.textProperties.font = .systemFont(ofSize: 17, weight: .semibold)
-        configuration.textProperties.color = QuietChessTheme.navy
+        configuration.textProperties.color = ForkChessTheme.navy
         configuration.secondaryText = "\(record.outcome)\n\(record.date.formatted(date: .abbreviated, time: .shortened)) · \(record.moves.count) moves" +
             (record.branchCount > 1 ? " · \(record.branchCount) branches" : "")
         configuration.secondaryTextProperties.numberOfLines = 0
-        configuration.secondaryTextProperties.color = QuietChessTheme.slate
+        configuration.secondaryTextProperties.color = ForkChessTheme.slate
         cell.contentConfiguration = configuration
         cell.backgroundColor = .white
         let share = chessButton("", icon: "square.and.arrow.up") { [weak self, weak cell] in

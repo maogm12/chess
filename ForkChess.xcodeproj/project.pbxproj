@@ -70,9 +70,9 @@
 		B10000000000000000000003 /* ChessBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessBoardView.swift; sourceTree = "<group>"; };
 		B10000000000000000000004 /* GameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewModel.swift; sourceTree = "<group>"; };
 		B10000000000000000000011 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
-		B10000000000000000000012 /* LocalChess.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LocalChess.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000012 /* ForkChess.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ForkChess.app; sourceTree = BUILT_PRODUCTS_DIR; };
         AC0000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests/GameTests.swift; sourceTree = SOURCE_ROOT; };
-        AC0000000000000000000002 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = QuietChessTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+        AC0000000000000000000002 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = ForkChessTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
         AC0000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B20000000000000000000001 /* ArasanEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArasanEngine.swift; sourceTree = "<group>"; };
 		B20000000000000000000002 /* ArasanBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ArasanBridge.mm; sourceTree = "<group>"; };
@@ -210,7 +210,7 @@
 		D10000000000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				B10000000000000000000012 /* LocalChess.app */,
+				B10000000000000000000012 /* ForkChess.app */,
                 AC0000000000000000000002,
 			);
 			name = Products;
@@ -236,9 +236,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		E10000000000000000000001 /* LocalChess */ = {
+		E10000000000000000000001 /* ForkChess */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = E10000000000000000000004 /* Build configuration list for PBXNativeTarget "LocalChess" */;
+			buildConfigurationList = E10000000000000000000004 /* Build configuration list for PBXNativeTarget "ForkChess" */;
 			buildPhases = (
 				E10000000000000000000002 /* Sources */,
 				C10000000000000000000001 /* Frameworks */,
@@ -248,9 +248,9 @@
 			);
 			dependencies = (
 			);
-			name = LocalChess;
-			productName = LocalChess;
-			productReference = B10000000000000000000012 /* LocalChess.app */;
+			name = ForkChess;
+			productName = ForkChess;
+			productReference = B10000000000000000000012 /* ForkChess.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -267,7 +267,7 @@
 					};
 				};
 			};
-			buildConfigurationList = F10000000000000000000003 /* Build configuration list for PBXProject "LocalChess" */;
+			buildConfigurationList = F10000000000000000000003 /* Build configuration list for PBXProject "ForkChess" */;
 			compatibilityVersion = "Xcode 16.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -280,7 +280,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				E10000000000000000000001 /* LocalChess */,
+				E10000000000000000000001 /* ForkChess */,
                 AD0000000000000000000001,
 			);
 		};
@@ -361,14 +361,14 @@
 /* End PBXSourcesBuildPhase section */
 
 
-        AD0000000000000000000001 = {isa = PBXNativeTarget; name = QuietChessTests; productName = QuietChessTests; productReference = AC0000000000000000000002; productType = "com.apple.product-type.bundle.unit-test"; buildConfigurationList = AD0000000000000000000002; buildPhases = (AD0000000000000000000003, AD0000000000000000000004); dependencies = (AD0000000000000000000005); buildRules = (); };
+        AD0000000000000000000001 = {isa = PBXNativeTarget; name = ForkChessTests; productName = ForkChessTests; productReference = AC0000000000000000000002; productType = "com.apple.product-type.bundle.unit-test"; buildConfigurationList = AD0000000000000000000002; buildPhases = (AD0000000000000000000003, AD0000000000000000000004); dependencies = (AD0000000000000000000005); buildRules = (); };
         AD0000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (AD0000000000000000000007, AD0000000000000000000008); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
         AD0000000000000000000003 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (AB0000000000000000000001); runOnlyForDeploymentPostprocessing = 0; };
         AD0000000000000000000004 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
         AD0000000000000000000005 = {isa = PBXTargetDependency; target = E10000000000000000000001; targetProxy = AD0000000000000000000006; };
-        AD0000000000000000000006 = {isa = PBXContainerItemProxy; containerPortal = F10000000000000000000001; proxyType = 1; remoteGlobalIDString = E10000000000000000000001; remoteInfo = LocalChess; };
-        AD0000000000000000000007 = {isa = XCBuildConfiguration; name = Debug; buildSettings = { GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = com.example.localchess.tests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LocalChess.app/LocalChess"; BUNDLE_LOADER = "$(TEST_HOST)"; SWIFT_OBJC_BRIDGING_HEADER = ""; INFOPLIST_FILE = ""; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; };
-        AD0000000000000000000008 = {isa = XCBuildConfiguration; name = Release; buildSettings = { GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = com.example.localchess.tests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LocalChess.app/LocalChess"; BUNDLE_LOADER = "$(TEST_HOST)"; SWIFT_OBJC_BRIDGING_HEADER = ""; INFOPLIST_FILE = ""; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; };
+        AD0000000000000000000006 = {isa = PBXContainerItemProxy; containerPortal = F10000000000000000000001; proxyType = 1; remoteGlobalIDString = E10000000000000000000001; remoteInfo = ForkChess; };
+        AD0000000000000000000007 = {isa = XCBuildConfiguration; name = Debug; buildSettings = { GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = com.maogm12.forkchess.tests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ForkChess.app/ForkChess"; BUNDLE_LOADER = "$(TEST_HOST)"; SWIFT_OBJC_BRIDGING_HEADER = ""; INFOPLIST_FILE = ""; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; };
+        AD0000000000000000000008 = {isa = XCBuildConfiguration; name = Release; buildSettings = { GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = com.maogm12.forkchess.tests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ForkChess.app/ForkChess"; BUNDLE_LOADER = "$(TEST_HOST)"; SWIFT_OBJC_BRIDGING_HEADER = ""; INFOPLIST_FILE = ""; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; };
 /* Begin XCBuildConfiguration section */
 		F20000000000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -399,7 +399,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = ("$(SRCROOT)/ChessApp", "$(SRCROOT)/ChessApp/Vendor/Arasan/src", "$(SRCROOT)/ChessApp/Vendor/Arasan/src/nnue");
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				INFOPLIST_KEY_CFBundleDisplayName = "Quiet Chess";
+				INFOPLIST_KEY_CFBundleDisplayName = "ForkChess";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
 				INFOPLIST_FILE = ChessApp/Info.plist;
                 
@@ -415,7 +415,7 @@
 					"NETWORK=arasanv8-20260906.nnue",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.localchess;
+				PRODUCT_BUNDLE_IDENTIFIER = com.maogm12.forkchess;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = ChessApp/ArasanBridge.h;
@@ -450,7 +450,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = ("$(SRCROOT)/ChessApp", "$(SRCROOT)/ChessApp/Vendor/Arasan/src", "$(SRCROOT)/ChessApp/Vendor/Arasan/src/nnue");
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				INFOPLIST_KEY_CFBundleDisplayName = "Quiet Chess";
+				INFOPLIST_KEY_CFBundleDisplayName = "ForkChess";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
 				INFOPLIST_FILE = ChessApp/Info.plist;
                 
@@ -461,7 +461,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.localchess;
+				PRODUCT_BUNDLE_IDENTIFIER = com.maogm12.forkchess;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_OBJC_BRIDGING_HEADER = ChessApp/ArasanBridge.h;
@@ -473,7 +473,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		F10000000000000000000003 /* Build configuration list for PBXProject "LocalChess" */ = {
+		F10000000000000000000003 /* Build configuration list for PBXProject "ForkChess" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F20000000000000000000001 /* Debug */,
@@ -482,7 +482,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		E10000000000000000000004 /* Build configuration list for PBXNativeTarget "LocalChess" */ = {
+		E10000000000000000000004 /* Build configuration list for PBXNativeTarget "ForkChess" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F20000000000000000000001 /* Debug */,
