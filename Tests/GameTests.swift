@@ -649,13 +649,36 @@ final class GameTests: XCTestCase {
         navigation.popToRootViewController(animated: false)
         try await Task.sleep(nanoseconds: 300_000_000)
         XCTAssertTrue(navigation.isNavigationBarHidden, "Returning home restores its header")
-        let history = try XCTUnwrap(descendants(of: home.view).first { $0 is UITableView } as? UITableView)
-        home.tableView(history, didSelectRowAt: IndexPath(row: 0, section: 0))
-        try await waitUntil("home puzzle entry opens game") { navigation.topViewController is GameViewController }
+        XCTAssertFalse(descendants(of: home.view).contains { $0 is UITableView },
+                       "Saved games live on the history page, not in an inline home list")
+        let historyButton = try XCTUnwrap(descendants(of: home.view).first {
+            $0.accessibilityIdentifier == "open-game-history"
+        } as? UIButton)
+        XCTAssertEqual(historyButton.accessibilityValue, "1 game")
+        historyButton.sendActions(for: .touchUpInside)
+        try await waitUntil("history page opened") { navigation.topViewController is HistoryViewController }
+        try await waitUntil("history transition completed") { navigation.transitionCoordinator == nil }
+        let historyPage = try XCTUnwrap(navigation.topViewController as? HistoryViewController)
+        XCTAssertNil(home.presentedViewController)
+        XCTAssertNil(historyPage.navigationItem.rightBarButtonItem, "A navigation page uses Back, not Done")
+        XCTAssertFalse(navigation.isNavigationBarHidden)
+        writeReviewImage(UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }, named: "HistoryPage")
+        let history = try XCTUnwrap(descendants(of: historyPage.view).first { $0 is UITableView } as? UITableView)
+        XCTAssertEqual(historyPage.tableView(history, numberOfRowsInSection: 0), 1)
+        historyPage.tableView(history, didSelectRowAt: IndexPath(row: 0, section: 0))
+        try await waitUntil("history puzzle entry opens game") { navigation.topViewController is GameViewController }
         try await settle(game)
-        XCTAssertFalse(game.reviewing, "A puzzle on the home screen should open for play")
+        XCTAssertFalse(game.reviewing, "A puzzle on the history page should open for play")
         XCTAssertTrue(game.inputAllowed)
         XCTAssertEqual(game.active?.moves, resumedMoves, "An unfinished puzzle resumes its moves")
+        navigation.popViewController(animated: false)
+        XCTAssertTrue(navigation.topViewController === historyPage, "Returning from play restores history")
+        navigation.popViewController(animated: false)
+        try await Task.sleep(nanoseconds: 300_000_000)
+        XCTAssertTrue(navigation.topViewController === home)
+        XCTAssertTrue(navigation.isNavigationBarHidden)
     }
 
     func testPuzzleSetupRejectsIllegalPositions() async throws {
