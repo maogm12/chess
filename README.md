@@ -68,7 +68,9 @@ no signing identity or credentials are committed here.
   or full-width continue button; that space belongs to the history list.
   Forks have an inline branch page row below the fork with the selected branch, page count,
   dots, and a visible horizontal swipe cue. Horizontal drags below a fork switch its continuation;
-  vertical drags scroll the history. Tapping a page dot or choosing a line in the branch menu
+  only rows below that fork move horizontally; the shared moves and the pager stay in place.
+  Switching lines preserves the history's vertical scroll position, even for shorter branches.
+  Vertical drags scroll the history. Tapping a page dot or choosing a line in the branch menu
   also switches branches. **Latest** returns to the selected line's tip.
   Each branch has one parent; identical positions never merge. Branches retain their own
   moves, ratings, outcome, and timer, and one game occupies one history entry.

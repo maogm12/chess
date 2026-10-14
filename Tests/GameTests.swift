@@ -3,6 +3,18 @@ import UIKit
 import Combine
 @testable import LocalChess
 
+private final class TimelineTestPan: UIPanGestureRecognizer {
+    var phase: UIGestureRecognizer.State = .possible
+    var point: CGPoint = .zero
+    var travel: CGPoint = .zero
+    override var state: UIGestureRecognizer.State {
+        get { phase }
+        set { phase = newValue }
+    }
+    override func location(in view: UIView?) -> CGPoint { point }
+    override func translation(in view: UIView?) -> CGPoint { travel }
+}
+
 @MainActor
 final class GameTests: XCTestCase {
     func waitUntil(_ label: String, _ condition: @escaping () -> Bool) async throws {
@@ -1045,6 +1057,124 @@ final class GameTests: XCTestCase {
         try await settle(game)
         XCTAssertFalse(game.reviewing)
         XCTAssertEqual(game.active?.branchID, newBranch)
+    }
+
+    func testBranchPagingKeepsSharedRowsAndScrollPosition() async throws {
+        let (game, _) = try await makeGame()
+        game.settings.moveRatingsEnabled = true
+        var record = SavedGame(playerWhite: true)
+        record.moves = ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5", "d2d3", "g8f6",
+                        "b1c3", "d7d6", "c1g5", "h7h6", "g5h4", "c8e6", "c4e6", "f7e6"]
+        record.notation = ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "d3", "Nf6",
+                           "Nc3", "d6", "Bg5", "h6", "Bh4", "Be6", "Bxe6", "fxe6"]
+        record.ratings = Array(repeating: .good, count: record.moves.count)
+        let root = record.id
+        record.fork(at: 5, seconds: 600)
+        record.moves += ["g8f6", "d2d3", "f8c5", "b1c3", "d7d6"]
+        record.notation += ["Nf6", "d3", "Bc5", "Nc3", "d6"]
+        record.ratings = Array(repeating: .good, count: record.moves.count)
+        record.syncSelectedBranch()
+        let child = record.branchID
+        record.fork(at: 8, seconds: 600)
+        record.moves += ["b1d2", "d7d6"]
+        record.notation += ["Nd2", "d6"]
+        record.ratings = Array(repeating: .good, count: record.moves.count)
+        record.syncSelectedBranch()
+        let nested = record.branchID
+        record.selectBranch(child)
+        game.review(record)
+        try await settle(game)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = try XCTUnwrap(scene.windows.first)
+        let original = window.rootViewController
+        defer { window.rootViewController = original }
+        let screen = GameViewController(game: game)
+        window.rootViewController = ChessNavigationController(rootViewController: screen)
+        window.makeKeyAndVisible()
+        window.layoutIfNeeded()
+        try await Task.sleep(nanoseconds: 300_000_000)
+        screen.updateView()
+        screen.view.layoutIfNeeded()
+        let table = try XCTUnwrap(descendants(of: screen.view).first {
+            $0.accessibilityIdentifier == "move-timeline"
+        } as? UITableView)
+        table.setContentOffset(CGPoint(x: 0, y: 70), animated: false)
+        table.layoutIfNeeded()
+        let sharedIndex = IndexPath(row: 2, section: 0)
+        let shared = try XCTUnwrap(table.cellForRow(at: sharedIndex))
+        let sharedFrame = shared.convert(shared.bounds, to: window)
+        let fork = try XCTUnwrap(table.cellForRow(at: IndexPath(row: 3, section: 0)))
+        let forkFrame = fork.convert(fork.bounds, to: window)
+        let offset = table.contentOffset
+        let continuation = try XCTUnwrap(table.cellForRow(at: IndexPath(row: 4, section: 0)))
+        let drag = TimelineTestPan()
+        drag.point = CGPoint(x: table.bounds.midX, y: table.rectForRow(at: IndexPath(row: 4, section: 0)).midY)
+        drag.phase = .began
+        screen.perform(NSSelectorFromString("pannedHistory:"), with: drag)
+        drag.phase = .changed
+        drag.travel = CGPoint(x: 40, y: 0)
+        screen.perform(NSSelectorFromString("pannedHistory:"), with: drag)
+        XCTAssertEqual(continuation.transform.tx, 40, accuracy: 0.5,
+                       "The continuation follows a horizontal drag")
+        XCTAssertEqual(shared.transform, .identity)
+        XCTAssertEqual(fork.transform, .identity)
+        writeReviewImage(UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }, named: "PartialBranchDrag")
+        drag.phase = .cancelled
+        screen.perform(NSSelectorFromString("pannedHistory:"), with: drag)
+        try await Task.sleep(nanoseconds: 200_000_000)
+        XCTAssertEqual(continuation.transform, .identity, "A cancelled drag restores the continuation")
+        screen.pageBranch(direction: -1, at: 5)
+        screen.updateView()
+        XCTAssertEqual(game.record?.branchID, root)
+        XCTAssertTrue(table.cellForRow(at: sharedIndex) === shared,
+                      "The shared white move before a mid-turn fork is not recreated")
+        XCTAssertTrue(table.cellForRow(at: IndexPath(row: 3, section: 0)) === fork,
+                      "The branch pager stays in place while its continuation pages")
+        XCTAssertNil(table.layer.animation(forKey: "branch-page"), "Never animate the whole table")
+        XCTAssertEqual(shared.transform, .identity)
+        XCTAssertEqual(fork.transform, .identity)
+        XCTAssertEqual(table.contentOffset.y, offset.y, accuracy: 0.5)
+        try await settle(game)
+        screen.view.layoutIfNeeded()
+        XCTAssertEqual(shared.convert(shared.bounds, to: window).minY, sharedFrame.minY, accuracy: 0.5)
+        XCTAssertEqual(fork.convert(fork.bounds, to: window).minY, forkFrame.minY, accuracy: 0.5)
+        // Switching back to a shorter line must not jump to the selected move or
+        // pull the shared history upward when the table's content becomes shorter.
+        screen.pageBranch(direction: 1, at: 5)
+        screen.updateView()
+        try await settle(game)
+        XCTAssertEqual(game.record?.branchID, child)
+        XCTAssertTrue(table.cellForRow(at: sharedIndex) === shared)
+        XCTAssertEqual(table.contentOffset.y, offset.y, accuracy: 0.5)
+        XCTAssertEqual(shared.convert(shared.bounds, to: window).minY, sharedFrame.minY, accuracy: 0.5)
+        screen.pageBranch(direction: 1, at: 8)
+        screen.updateView()
+        try await settle(game)
+        XCTAssertEqual(game.record?.branchID, nested)
+        XCTAssertTrue(table.cellForRow(at: sharedIndex) === shared, "Nested paging preserves ancestor rows")
+        XCTAssertEqual(table.contentOffset.y, offset.y, accuracy: 0.5)
+        screen.pageBranch(direction: -1, at: 8)
+        try await settle(game)
+        XCTAssertEqual(game.record?.branchID, child)
+        screen.pageBranch(direction: -1, at: 5)
+        try await settle(game)
+        XCTAssertEqual(game.record?.branchID, root)
+        screen.pageBranch(direction: -1, at: 5)
+        XCTAssertEqual(game.record?.branchID, root, "Paging beyond the first branch changes nothing")
+        table.setContentOffset(CGPoint(x: 0, y: max(0, table.contentSize.height - table.bounds.height)), animated: false)
+        let bottomOffset = table.contentOffset.y
+        screen.pageBranch(direction: 1, at: 5)
+        screen.updateView()
+        try await settle(game)
+        XCTAssertEqual(game.record?.branchID, child)
+        XCTAssertEqual(table.contentOffset.y, bottomOffset, accuracy: 0.5,
+                       "A shorter continuation preserves even a scroll position near the old bottom")
+        XCTAssertGreaterThan(table.contentInset.bottom, 0)
+        writeReviewImage(UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }, named: "ShortBranchAfterPaging")
     }
 
     func testRedoSelectedMoveOnlyAllowsHumanAndRewindsBeforeIt() async throws {
