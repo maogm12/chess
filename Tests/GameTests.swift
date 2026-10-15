@@ -85,6 +85,7 @@ final class GameTests: XCTestCase {
         let game = GameViewModel(storageURL: migratedURL)
         try await waitUntil("migrated library ready") { game.ready }
         XCTAssertEqual(game.settings.skill, 11)
+        record.configuration = GameSettings(defaults: settings)
         XCTAssertEqual(game.active, record)
         XCTAssertEqual(game.games, [record])
         XCTAssertNil(game.errorMessage)
@@ -435,6 +436,7 @@ final class GameTests: XCTestCase {
             ("Home", HomeViewController(game: game)),
             ("Game", GameViewController(game: game)),
             ("Settings", SettingsViewController(game: game)),
+            ("GameSettings", SettingsViewController(game: game, scope: .currentGame)),
             ("History", HistoryViewController(game: game) { _ in }),
             ("Puzzle", PuzzleViewController(game: game)),
             ("PuzzleEditor", PuzzleEditorViewController(game: game) { _ in })
@@ -647,12 +649,12 @@ final class GameTests: XCTestCase {
         let settings = SettingsViewController(game: game)
         settings.loadViewIfNeeded()
         let table = try XCTUnwrap(descendants(of: settings.view).first { $0 is UITableView } as? UITableView)
-        let ratingCell = settings.tableView(table, cellForRowAt: IndexPath(row: 0, section: 3))
+        let ratingCell = settings.tableView(table, cellForRowAt: IndexPath(row: 0, section: 2))
         let ratingSwitch = try XCTUnwrap(ratingCell.accessoryView as? UISwitch)
         ratingSwitch.isOn = true
         ratingSwitch.sendActions(for: .valueChanged)
         XCTAssertTrue(game.settings.moveRatingsEnabled)
-        let coordinatesCell = settings.tableView(table, cellForRowAt: IndexPath(row: 2, section: 4))
+        let coordinatesCell = settings.tableView(table, cellForRowAt: IndexPath(row: 2, section: 3))
         let coordinatesSwitch = try XCTUnwrap(coordinatesCell.accessoryView as? UISwitch)
         coordinatesSwitch.isOn = false
         coordinatesSwitch.sendActions(for: .valueChanged)
@@ -975,7 +977,7 @@ final class GameTests: XCTestCase {
         let settings = SettingsViewController(game: game)
         settings.loadViewIfNeeded()
         let table = try XCTUnwrap(descendants(of: settings.view).first { $0 is UITableView } as? UITableView)
-        XCTAssertEqual(settings.tableView(table, numberOfRowsInSection: 0), 1)
+        XCTAssertEqual(settings.tableView(table, numberOfRowsInSection: 0), 2)
         let side = settings.tableView(table, cellForRowAt: IndexPath(row: 0, section: 0))
         XCTAssertEqual(side.textLabel?.text, "Play as")
         _ = try await game.addPuzzle(fen: "4k3/8/8/8/8/8/8/R3K3 w - - 0 1", playerWhite: true)
@@ -987,7 +989,8 @@ final class GameTests: XCTestCase {
         }
         XCTAssertFalse(titles(menu).contains("Mode"))
         XCTAssertFalse(titles(menu).contains("Practice both sides"))
-        XCTAssertTrue(titles(menu).contains("Bot strength"))
+        XCTAssertTrue(titles(menu).contains("Game settings"))
+        XCTAssertFalse(titles(menu).contains("All settings…"))
         let buttons = descendants(of: screen.view).compactMap { $0 as? UIButton }
         XCTAssertTrue(buttons.contains { $0.configuration?.title == "Resign" })
         XCTAssertFalse(buttons.contains { $0.configuration?.title == "Finish" })
@@ -1073,6 +1076,7 @@ final class GameTests: XCTestCase {
         XCTAssertEqual(restored.active?.ratings?.first, .good)
         XCTAssertTrue(restored.inputAllowed)
         XCTAssertTrue(restored.pgn(for: try XCTUnwrap(restored.active)).contains("[Black \"Bot\"]"))
+        finished.configuration = GameSettings(defaults: library.settings)
         XCTAssertEqual(restored.games.first { $0.id == finished.id }, finished)
         restored.openPuzzle(finished)
         try await settle(restored)
@@ -1094,12 +1098,17 @@ final class GameTests: XCTestCase {
         let rootID = try XCTUnwrap(game.active?.id)
         game.play(try XCTUnwrap(game.snapshot?.legal.first { $0.uci == "e2e4" }))
         try await waitUntil("bot search before seeking") { game.isThinking }
+        var configuration = game.gameSettings
+        configuration.skill = 16
+        game.updateGameSettings(configuration)
+        game.settings.skill = 2
         game.seek(0)
         XCTAssertTrue(game.busy, "Continuing must wait for the requested historical snapshot")
         XCTAssertFalse(game.canContinue)
         try await settle(game)
         XCTAssertTrue(game.reviewing)
         XCTAssertEqual(game.reviewGame?.moves, ["e2e4"], "An obsolete search cannot append to the saved route")
+        XCTAssertEqual(game.gameSettings.skill, 16, "Request invalidation preserves this game's settings")
         XCTAssertEqual(game.moves, [])
         game.practiceFromHere()
         try await settle(game)
@@ -1790,7 +1799,9 @@ final class GameTests: XCTestCase {
         try await settle(game)
         XCTAssertEqual(game.active?.moves.count, 0)
         XCTAssertNil(game.active?.ratings)
-        game.settings.moveRatingsEnabled = false
+        var configuration = game.gameSettings
+        configuration.rateMoves = false
+        game.updateGameSettings(configuration)
         try await play("d2d4", in: game)
         XCTAssertNil(game.active?.ratings)
         // Simulate an actual pre-feature library: new keys are absent, not null.
@@ -1802,5 +1813,168 @@ final class GameTests: XCTestCase {
         let legacy = try JSONDecoder().decode(LocalLibrary.self, from: oldData)
         XCTAssertFalse(legacy.settings.moveRatingsEnabled)
         XCTAssertEqual(legacy.games.count, game.games.count)
+    }
+
+    func testGameSettingsAreIndependentOfDefaultsAndOtherGames() async throws {
+        var date = Date(timeIntervalSince1970: 1000)
+        let (game, url) = try await makeGame(now: { date })
+        game.settings.skill = 2
+        game.settings.practiceMinutes = 5
+        game.newGame()
+        try await settle(game)
+        game.setPracticeVisible(true)
+        date += 30
+        let firstID = try XCTUnwrap(game.active?.id)
+        let original = game.gameSettings
+        XCTAssertEqual(game.practiceTimeRemaining(), 270)
+
+        game.settings.skill = 16
+        game.settings.thinkSeconds = 1
+        game.settings.practiceMinutes = 30
+        game.settings.moveRatingsEnabled = true
+        XCTAssertEqual(game.gameSettings, original)
+        XCTAssertEqual(game.practiceTimeRemaining(), 270)
+
+        var local = original
+        local.skill = 11
+        local.rateMoves = false
+        local.practiceMinutes = 15
+        game.updateGameSettings(local)
+        XCTAssertEqual(game.practiceTimeRemaining(), 900)
+        XCTAssertEqual(game.settings.skill, 16)
+        XCTAssertEqual(game.settings.thinkSeconds, 1)
+        XCTAssertTrue(game.settings.moveRatingsEnabled)
+        XCTAssertEqual(game.settings.practiceMinutes, 30)
+        try await play("e2e4", in: game)
+        XCTAssertNil(game.active?.ratings, "This game's feedback setting wins over global defaults")
+        date += 20
+        game.setPracticeVisible(false)
+        let first = try XCTUnwrap(game.active)
+        game.newGame()
+        try await settle(game)
+        game.setPracticeVisible(true)
+        XCTAssertEqual(game.gameSettings.skill, 16)
+        XCTAssertEqual(game.gameSettings.thinkSeconds, 1)
+        XCTAssertTrue(game.gameSettings.rateMoves)
+        XCTAssertEqual(game.practiceTimeRemaining(), 1800)
+        let secondID = try XCTUnwrap(game.active?.id)
+
+        game.review(first)
+        try await settle(game)
+        XCTAssertEqual(game.gameSettings, local)
+        local.skill = 12
+        game.updateGameSettings(local)
+        XCTAssertEqual(game.active?.id, secondID, "Editing a reviewed game preserves the other active game")
+        XCTAssertEqual(game.active?.configuration?.skill, 16)
+        XCTAssertEqual(game.gameSettings, local)
+        game.seek(1)
+        try await settle(game)
+        game.redoSelectedMove()
+        try await settle(game)
+        XCTAssertEqual(game.active?.id, firstID)
+        XCTAssertEqual(game.gameSettings, local)
+        XCTAssertEqual(game.practiceTimeRemaining(), 900, "Forks use this game's duration")
+        let forkID = try XCTUnwrap(game.active?.branchID)
+        var shorter = local
+        shorter.practiceMinutes = 5
+        game.updateGameSettings(shorter)
+        XCTAssertEqual(game.practiceTimeRemaining(), 300)
+        XCTAssertEqual(game.active?.branches.first { $0.id == firstID }?.practiceSeconds, 880,
+                       "Resetting this line's countdown preserves the other branch's time")
+        game.selectBranch(firstID)
+        try await settle(game)
+        var reviewed = game.gameSettings
+        reviewed.rateMoves = true
+        game.updateGameSettings(reviewed)
+        let restored = GameViewModel(storageURL: url)
+        try await waitUntil("scoped settings restored") { restored.ready }
+        XCTAssertEqual(restored.active?.id, firstID)
+        XCTAssertEqual(restored.gameSettings, reviewed)
+        XCTAssertEqual(restored.games.first { $0.id == secondID }?.configuration?.skill, 16)
+        XCTAssertEqual(restored.active?.branches.first { $0.id == forkID }?.practiceSeconds, 300)
+        XCTAssertEqual(restored.settings.skill, 16)
+    }
+
+    func testLegacyGamesCaptureSettingsBeforeGlobalDefaultsChange() async throws {
+        let (_, url) = try await makeGame()
+        var defaults = PracticeSettings()
+        defaults.skill = 13
+        defaults.practiceMinutes = 15
+        defaults.moveRatingsEnabled = true
+        var first = SavedGame(playerWhite: true)
+        first.moves = ["e2e4", "e7e5"]
+        first.notation = ["e4", "e5"]
+        first.practiceSeconds = 123
+        first.fork(at: 0, seconds: 456)
+        let second = SavedGame(playerWhite: false, isPuzzle: true)
+        let legacy = LocalLibrary(settings: defaults, games: [first, second], activeID: first.id)
+        try JSONEncoder().encode(legacy).write(to: url)
+        let game = GameViewModel(storageURL: url)
+        try await waitUntil("legacy game settings") { game.ready }
+        let captured = GameSettings(defaults: defaults)
+        XCTAssertTrue(game.games.allSatisfy { $0.configuration == captured })
+        game.settings.skill = 2
+        game.settings.practiceMinutes = 5
+        game.settings.moveRatingsEnabled = false
+        game.openPuzzle(second)
+        try await settle(game)
+        XCTAssertEqual(game.gameSettings, captured)
+        XCTAssertEqual(game.practiceTimeRemaining(), 900)
+        game.review(first)
+        try await settle(game)
+        XCTAssertEqual(game.gameSettings, captured)
+        XCTAssertEqual(game.record?.branches, first.branches)
+        let restored = GameViewModel(storageURL: url)
+        try await waitUntil("migrated settings persisted") { restored.ready }
+        XCTAssertEqual(restored.settings.skill, 2)
+        XCTAssertTrue(restored.games.allSatisfy { $0.configuration == captured })
+        XCTAssertEqual(restored.games.first { $0.id == first.id }?.branches, first.branches)
+    }
+
+    func testSettingsPagesExposeOnlyTheirOwnScope() async throws {
+        let (game, _) = try await makeGame()
+        game.newGame()
+        try await settle(game)
+        let defaults = game.settings
+        let global = SettingsViewController(game: game)
+        let local = SettingsViewController(game: game, scope: .currentGame)
+        global.loadViewIfNeeded()
+        local.loadViewIfNeeded()
+        let table = try XCTUnwrap(descendants(of: local.view).first { $0 is UITableView } as? UITableView)
+        XCTAssertEqual(local.title, "Game settings")
+        XCTAssertEqual(local.numberOfSections(in: table), 3)
+        var labels: [String] = []
+        for section in 0..<local.numberOfSections(in: table) {
+            for row in 0..<local.tableView(table, numberOfRowsInSection: section) {
+                let cell = local.tableView(table, cellForRowAt: IndexPath(row: row, section: section))
+                labels.append(cell.textLabel?.text ?? "")
+                if let slider = descendants(of: cell).first(where: { $0 is UISlider }) as? UISlider {
+                    slider.value = 16
+                    slider.sendActions(for: .valueChanged)
+                }
+            }
+        }
+        XCTAssertFalse(labels.contains("Play as"))
+        XCTAssertFalse(labels.contains("Colors"))
+        XCTAssertFalse(labels.contains("Show coordinates"))
+        XCTAssertFalse(labels.contains("Engine license (MIT)"))
+        XCTAssertFalse(labels.contains("Skill level"))
+        let cell = local.tableView(table, cellForRowAt: IndexPath(row: 0, section: 1))
+        let control = try XCTUnwrap(cell.accessoryView as? UISwitch)
+        control.isOn = true
+        control.sendActions(for: .valueChanged)
+        XCTAssertTrue(game.gameSettings.rateMoves)
+        XCTAssertEqual(game.gameSettings.skill, 16)
+        XCTAssertEqual(game.settings, defaults)
+        let globalTable = try XCTUnwrap(descendants(of: global.view).first { $0 is UITableView } as? UITableView)
+        let defaultRating = global.tableView(globalTable, cellForRowAt: IndexPath(row: 0, section: 2))
+        XCTAssertFalse(try XCTUnwrap(defaultRating.accessoryView as? UISwitch).isOn)
+        let coordinates = global.tableView(globalTable, cellForRowAt: IndexPath(row: 2, section: 3))
+        let coordinatesSwitch = try XCTUnwrap(coordinates.accessoryView as? UISwitch)
+        coordinatesSwitch.isOn = false
+        coordinatesSwitch.sendActions(for: .valueChanged)
+        XCTAssertFalse(game.settings.coordinates)
+        game.handleTap(squareIndex("e2"))
+        XCTAssertFalse(game.legalTargets.isEmpty)
     }
 }

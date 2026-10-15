@@ -53,6 +53,24 @@ struct PracticeSettings: Codable, Equatable {
         set { rateMoves = newValue }
     }
     var difficulty: String {
+        GameSettings(defaults: self).difficulty
+    }
+}
+
+struct GameSettings: Codable, Equatable {
+    var skill: Int
+    var thinkSeconds: Double
+    var rateMoves: Bool
+    var practiceMinutes: Int
+
+    init(defaults: PracticeSettings) {
+        skill = defaults.skill
+        thinkSeconds = defaults.thinkSeconds
+        rateMoves = defaults.moveRatingsEnabled
+        practiceMinutes = defaults.practiceMinutes
+    }
+
+    var difficulty: String {
         switch skill {
         case 0...3: return "Beginner"
         case 4...8: return "Casual"
@@ -108,6 +126,7 @@ struct SavedGame: Codable, Identifiable, Equatable {
     var reason = ""
     var branches: [GameBranch] = []
     var selectedBranchID: UUID?
+    var configuration: GameSettings?
     var title: String { isSavedPractice ? "Puzzle" : "Play with bot" }
     var outcome: String { result == "*" ? "In progress" : reason + " · " + result }
     var defaultWhiteAtBottom: Bool {
@@ -121,7 +140,7 @@ struct SavedGame: Codable, Identifiable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case id, date, playerWhite, isPuzzle, baseFEN, moves, notation, ratings, practiceSeconds, result, reason
-        case branches, selectedBranchID
+        case branches, selectedBranchID, configuration
     }
     private enum LegacyKeys: String, CodingKey { case mode }
 
@@ -139,6 +158,7 @@ struct SavedGame: Codable, Identifiable, Equatable {
         reason = try values.decodeIfPresent(String.self, forKey: .reason) ?? ""
         branches = try values.decodeIfPresent([GameBranch].self, forKey: .branches) ?? []
         selectedBranchID = try values.decodeIfPresent(UUID.self, forKey: .selectedBranchID)
+        configuration = try values.decodeIfPresent(GameSettings.self, forKey: .configuration)
         // Old libraries used the manual-play mode to identify puzzles.
         let legacy = try decoder.container(keyedBy: LegacyKeys.self)
         isPuzzle = try values.decodeIfPresent(Bool.self, forKey: .isPuzzle)
@@ -277,6 +297,7 @@ final class GameViewModel: ObservableObject {
     private var suspended = false
     private var saveURL: URL?
     var record: SavedGame? { reviewGame ?? active }
+    var gameSettings: GameSettings { record?.configuration ?? GameSettings(defaults: settings) }
     var moves: [String] { snapshot?.notation ?? [] }
     var reviewing: Bool { reviewGame != nil }
     var gameOver: Bool { !reviewing && active?.result != "*" && active != nil }
@@ -355,7 +376,12 @@ final class GameViewModel: ObservableObject {
             if let saveURL, FileManager.default.fileExists(atPath: saveURL.path) {
                 let library = try JSONDecoder().decode(LocalLibrary.self, from: Data(contentsOf: saveURL))
                 settings = library.settings
-                games = library.games
+                // Snapshot legacy defaults once, so later global changes cannot alter old games.
+                games = library.games.map { record in
+                    var record = record
+                    if record.configuration == nil { record.configuration = GameSettings(defaults: library.settings) }
+                    return record
+                }
                 active = games.first { $0.id == library.activeID }
             }
         } catch { errorMessage = "Could not read saved games: " + error.localizedDescription }
@@ -376,6 +402,7 @@ final class GameViewModel: ObservableObject {
         reviewGame = nil
         flipped = false
         active = SavedGame(playerWhite: settings.playWhite)
+        active?.configuration = GameSettings(defaults: settings)
         active?.practiceSeconds = TimeInterval(settings.practiceMinutes * 60)
         startTimer()
         persist()
@@ -406,6 +433,7 @@ final class GameViewModel: ObservableObject {
         flipped = false
         var puzzle = SavedGame(playerWhite: playerWhite, isPuzzle: true)
         puzzle.baseFEN = fen
+        puzzle.configuration = GameSettings(defaults: settings)
         puzzle.practiceSeconds = TimeInterval(settings.practiceMinutes * 60)
         active = puzzle
         startTimer()
@@ -423,7 +451,10 @@ final class GameViewModel: ObservableObject {
         reviewGame = nil
         flipped = false
         var puzzle = games.first { $0.id == record.id && !$0.branches.isEmpty } ?? record
-        if puzzle.moves.isEmpty { puzzle.practiceSeconds = TimeInterval(settings.practiceMinutes * 60) }
+        prepareGameSettings(for: &puzzle)
+        if puzzle.practiceSeconds == nil {
+            puzzle.practiceSeconds = TimeInterval((puzzle.configuration?.practiceMinutes ?? 10) * 60)
+        }
         active = puzzle
         startTimer()
         persist()
@@ -524,6 +555,7 @@ final class GameViewModel: ObservableObject {
         pauseTimer()
         invalidate()
         var record = games.first { $0.id == game.id && !$0.branches.isEmpty } ?? game
+        prepareGameSettings(for: &record)
         record.syncSelectedBranch()
         reviewGame = record
         reviewPly = record.moves.count
@@ -550,7 +582,7 @@ final class GameViewModel: ObservableObject {
         guard canRedoSelectedMove, var next = reviewGame else { return }
         let positionBeforeMove = reviewPly - 1
         invalidate()
-        next.fork(at: positionBeforeMove, seconds: TimeInterval(settings.practiceMinutes * 60))
+        next.fork(at: positionBeforeMove, seconds: TimeInterval(gameSettings.practiceMinutes * 60))
         active = next
         reviewGame = nil
         startTimer()
@@ -563,7 +595,7 @@ final class GameViewModel: ObservableObject {
         guard canContinue, var next = reviewGame else { return }
         invalidate()
         if reviewPly < next.moves.count || next.result != "*" {
-            next.fork(at: reviewPly, seconds: TimeInterval(settings.practiceMinutes * 60))
+            next.fork(at: reviewPly, seconds: TimeInterval(gameSettings.practiceMinutes * 60))
         }
         active = next
         reviewGame = nil
@@ -608,6 +640,29 @@ final class GameViewModel: ObservableObject {
         if reviewGame?.id == id { reviewGame = nil }
         games.removeAll { $0.id == id }
         persist()
+    }
+
+    private func prepareGameSettings(for record: inout SavedGame) {
+        record.configuration = games.first { $0.id == record.id }?.configuration
+            ?? record.configuration ?? GameSettings(defaults: settings)
+    }
+
+    func updateGameSettings(_ configuration: GameSettings) {
+        guard var line = record, configuration != gameSettings else { return }
+        let resetTimer = configuration.practiceMinutes != gameSettings.practiceMinutes
+        if resetTimer && !reviewing {
+            pauseTimer()
+            line = active ?? line
+        }
+        line.configuration = configuration
+        if resetTimer { line.practiceSeconds = TimeInterval(configuration.practiceMinutes * 60) }
+        line.syncSelectedBranch()
+        if reviewing { reviewGame = line }
+        if active?.id == line.id { active = line }
+        if let index = games.firstIndex(where: { $0.id == line.id }) { games[index] = line }
+        else { games.insert(line, at: 0) }
+        persist()
+        if !reviewing { startTimer() }
     }
 
     func practiceTimeRemaining(at date: Date? = nil) -> TimeInterval {
@@ -684,7 +739,8 @@ final class GameViewModel: ObservableObject {
         let token = generation
         isThinking = true
         do {
-            let move = try await engine.search(fen: active.baseFEN, moves: active.moves, skill: settings.skill, milliseconds: Int(settings.thinkSeconds * 1000))
+            let configuration = active.configuration ?? GameSettings(defaults: settings)
+            let move = try await engine.search(fen: active.baseFEN, moves: active.moves, skill: configuration.skill, milliseconds: Int(configuration.thinkSeconds * 1000))
             guard token == generation else { return }
             guard snapshot?.legal.contains(where: { $0.uci == move }) == true else {
                 throw ChessError.engine("The bot could not find a legal reply. Undo or return home to retry.")
@@ -699,7 +755,7 @@ final class GameViewModel: ObservableObject {
     }
 
     private func rateMove(in before: SavedGame, candidate: String, token: Int) async {
-        guard settings.moveRatingsEnabled, let engine, token == generation else { return }
+        guard before.configuration?.rateMoves == true, let engine, token == generation else { return }
         isRating = true
         do {
             let rating = try await engine.rate(fen: before.baseFEN, moves: before.moves, candidate: candidate)

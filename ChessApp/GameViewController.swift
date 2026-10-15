@@ -231,7 +231,7 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         latest.isHidden = !game.reviewing
         latest.isEnabled = !game.busy
         updateBranches()
-        let nextRatings = game.settings.moveRatingsEnabled ? (game.record?.ratings ?? []) : []
+        let nextRatings = game.gameSettings.rateMoves ? (game.record?.ratings ?? []) : []
         let ply = game.cursorPly
         let nextRedoPly = game.canRedoSelectedMove ? game.selectedHistoricalPly : nil
         let branches = game.record?.branches ?? []
@@ -559,16 +559,11 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
     }
 
     private func optionsMenu() -> UIMenu {
-        let skills: [(String, Int)] = [("Beginner", 2), ("Casual", 6), ("Club", 11), ("Expert", 16), ("Full strength", 20)]
-        let strength = UIMenu(title: "Bot strength", children: skills.map { name, value in
-            UIAction(title: name, state: game.settings.skill == value ? .on : .off) { [weak self] _ in self?.game.settings.skill = value }
-        })
-        let times: [(String, Double)] = [("Quick · 0.4 seconds", 0.4), ("Balanced · 1 second", 1), ("Deeper · 2 seconds", 2)]
-        let thinking = UIMenu(title: "Thinking time", children: times.map { name, value in
-            UIAction(title: name, state: game.settings.thinkSeconds == value ? .on : .off) { [weak self] _ in self?.game.settings.thinkSeconds = value }
-        })
-        var children: [UIMenuElement] = [strength, thinking,
-            UIAction(title: "All settings…", image: UIImage(systemName: "gearshape")) { [weak self] _ in self?.presentSettings() }]
+        var children: [UIMenuElement] = [
+            UIAction(title: "Game settings", image: UIImage(systemName: "slider.horizontal.3")) { [weak self] _ in
+                self?.presentSettings(scope: .currentGame)
+            }
+        ]
         if let record = game.record {
             children.append(UIAction(title: "Share PGN", image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
                 guard let self else { return }; self.share(record, from: self.view)

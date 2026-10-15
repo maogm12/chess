@@ -104,8 +104,8 @@ class GameObservingViewController: UIViewController {
         present(alert, animated: true)
     }
 
-    func presentSettings() {
-        present(ChessNavigationController(rootViewController: SettingsViewController(game: game)), animated: true)
+    func presentSettings(scope: SettingsViewController.Scope = .global) {
+        present(ChessNavigationController(rootViewController: SettingsViewController(game: game, scope: scope)), animated: true)
     }
 
     func share(_ record: SavedGame, from source: UIView) {

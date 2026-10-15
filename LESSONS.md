@@ -131,6 +131,37 @@ Use a short descriptive heading and record:
 Prefer updating a related entry. Keep run logs in the automation's memory;
 this file is for reusable project knowledge.
 
+## Keep icon regeneration aligned with the approved artwork
+
+- Date and problem: On 2026-10-14, the supplied light and dark app icons replaced
+  a generated knight glyph, but `scripts/render-icon.swift` still drew the old art.
+- Cause: The generated asset alone did not preserve the approved source artwork.
+- Prevention: Keep both originals in `design/app-icon-light.jpg` and
+  `design/app-icon-dark.jpg`, and resize them through `scripts/render-icon.swift`.
+  Keep the dark appearance assigned in the app icon catalog.
+- Verification: The simulator build passed. Compiled catalog inspection confirmed
+  opaque 1024x1024 default and dark icons; regenerating preserved both PNG hashes.
+  No physical device or full integration suite was tested for this asset change.
+
+## Snapshot game settings instead of reading mutable new-game defaults
+
+- Date and symptom: On 2026-10-14, the board's bot menu wrote directly to
+  `PracticeSettings`, so changing one game also changed other games and defaults.
+- Cause: Engine searches, move ratings and fork timers read shared settings;
+  `SavedGame` had no independent bot or feedback configuration.
+- Prevention: Store `GameSettings` in `SavedGame.configuration`. Snapshot defaults
+  when creating a game or puzzle, and migrate all legacy games with their library's
+  defaults before those defaults can change. Use that game's configuration for
+  searches, feedback and new-fork duration. Keep board appearance and haptics global.
+  A search or rating retains the settings captured when its move began.
+- Evidence: `GameViewModel.updateGameSettings`, `prepareGameSettings`,
+  `replyIfNeeded`, `rateMove`, and the scope in `SettingsViewController`.
+- Verification: All 38 integration tests passed on iPhone 17 Pro / iOS 26.5.
+  New tests cover defaults and game isolation, editing a reviewed game while
+  another is active, persistence, legacy migration and branch timer preservation.
+  Existing search invalidation coverage also changes game settings during search.
+  Settings and Game settings screenshots were visually inspected.
+
 ## Renaming the app identifier creates a new data container
 
 - Date and problem: On 2026-10-14, Quiet Chess was renamed to ForkChess, with
