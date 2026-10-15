@@ -34,6 +34,10 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
     private lazy var end = actionButton("Resign", icon: "flag") { [weak self] in self?.confirmEnd() }
     private lazy var newGame = chessButton("New Game", primary: true) { [weak self] in self?.game.newGame() }
     private lazy var historyPan = UIPanGestureRecognizer(target: self, action: #selector(pannedHistory(_:)))
+    private lazy var gameSettingsItem = UIBarButtonItem(image: UIImage(systemName: "slider.horizontal.3"),
+                                                       style: .plain, target: self, action: #selector(openGameSettings))
+    private lazy var shareItem = UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up"),
+                                               style: .plain, target: self, action: #selector(shareGame))
     private var timer: Timer?
     private var notation: [String] = []
     private var ratings: [MoveRating?] = []
@@ -117,13 +121,11 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         actions.distribution = .fillEqually
         actions.spacing = 12
         [undo, hint, end].forEach { actions.addArrangedSubview($0) }
-        navigationItem.rightBarButtonItems = [
-            UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"), menu: optionsMenu()),
-            UIBarButtonItem(image: UIImage(systemName: "arrow.triangle.2.circlepath"),
-                            primaryAction: UIAction { [weak self] _ in self?.game.flipped.toggle() })
-        ]
-        navigationItem.rightBarButtonItems?[0].accessibilityLabel = "Game options"
-        navigationItem.rightBarButtonItems?[1].accessibilityLabel = "Flip board"
+        gameSettingsItem.accessibilityLabel = "Game settings"
+        gameSettingsItem.accessibilityIdentifier = "game-settings"
+        shareItem.accessibilityLabel = "Share PGN"
+        shareItem.accessibilityIdentifier = "share-game"
+        navigationItem.rightBarButtonItems = [gameSettingsItem, shareItem]
         updateView()
     }
 
@@ -275,7 +277,8 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
             movesTable.backgroundView = empty
         } else { movesTable.backgroundView = nil }
         updateHaptics()
-        navigationItem.rightBarButtonItems?.first?.menu = optionsMenu()
+        gameSettingsItem.isEnabled = game.record != nil
+        shareItem.isEnabled = game.record != nil
         updateTimer()
         view.setNeedsLayout()
     }
@@ -576,18 +579,14 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         cancelPromotion()
     }
 
-    private func optionsMenu() -> UIMenu {
-        var children: [UIMenuElement] = [
-            UIAction(title: "Game settings", image: UIImage(systemName: "slider.horizontal.3")) { [weak self] _ in
-                self?.presentSettings(scope: .currentGame)
-            }
-        ]
-        if let record = game.record {
-            children.append(UIAction(title: "Share PGN", image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
-                guard let self else { return }; self.share(record, from: self.view)
-            })
-        }
-        return UIMenu(children: children)
+    @objc private func openGameSettings() {
+        guard game.record != nil, presentedViewController == nil else { return }
+        presentSettings(scope: .currentGame)
+    }
+
+    @objc private func shareGame() {
+        guard let record = game.record, presentedViewController == nil else { return }
+        share(record, from: view, barButtonItem: shareItem)
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {

@@ -47,6 +47,64 @@ final class GameTests: XCTestCase {
         try await settle(game)
     }
 
+    func testGameToolbarOpensScopedSettingsAndAnchoredShareDirectly() async throws {
+        let (game, _) = try await makeGame()
+        game.newGame()
+        try await settle(game)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = try XCTUnwrap(scene.windows.first)
+        let original = window.rootViewController
+        let screen = GameViewController(game: game)
+        let navigation = ChessNavigationController(rootViewController: screen)
+        defer {
+            screen.dismiss(animated: false)
+            window.rootViewController = original
+        }
+        window.rootViewController = navigation
+        window.makeKeyAndVisible()
+        window.layoutIfNeeded()
+        screen.updateView()
+        screen.view.layoutIfNeeded()
+        writeReviewImage(UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }, named: "GameToolbar")
+        let items = try XCTUnwrap(screen.navigationItem.rightBarButtonItems)
+        let settingsItem = try XCTUnwrap(items.first { $0.accessibilityIdentifier == "game-settings" })
+        let shareItem = try XCTUnwrap(items.first { $0.accessibilityIdentifier == "share-game" })
+        XCTAssertEqual(items.count, 2)
+        XCTAssertTrue(items.allSatisfy { $0.menu == nil }, "Both actions are directly available")
+        XCTAssertFalse(items.contains { $0.accessibilityLabel == "Flip board" || $0.accessibilityLabel == "Game options" })
+        let defaults = game.settings
+        let recordID = game.record?.id
+        let moves = game.record?.moves
+        let orientation = game.whiteAtBottom
+        XCTAssertTrue(UIApplication.shared.sendAction(try XCTUnwrap(settingsItem.action), to: settingsItem.target,
+                                                     from: settingsItem, for: nil))
+        try await waitUntil("direct game settings presentation") { screen.presentedViewController != nil }
+        let settingsNavigation = try XCTUnwrap(screen.presentedViewController as? UINavigationController)
+        let settings = try XCTUnwrap(settingsNavigation.topViewController as? SettingsViewController)
+        settings.loadViewIfNeeded()
+        XCTAssertEqual(settings.title, "Game settings")
+        let table = try XCTUnwrap(descendants(of: settings.view).first { $0 is UITableView } as? UITableView)
+        let sliderCell = settings.tableView(table, cellForRowAt: IndexPath(row: 1, section: 0))
+        let slider = try XCTUnwrap(descendants(of: sliderCell).first { $0 is UISlider } as? UISlider)
+        slider.value = 16
+        slider.sendActions(for: .valueChanged)
+        XCTAssertEqual(game.gameSettings.skill, 16)
+        XCTAssertEqual(game.settings, defaults, "The direct button must retain per-game scope")
+        screen.dismiss(animated: false)
+        try await waitUntil("game settings dismissed") { screen.presentedViewController == nil }
+        XCTAssertTrue(UIApplication.shared.sendAction(try XCTUnwrap(shareItem.action), to: shareItem.target,
+                                                     from: shareItem, for: nil))
+        try await waitUntil("direct share presentation") { screen.presentedViewController is UIActivityViewController }
+        let share = try XCTUnwrap(screen.presentedViewController as? UIActivityViewController)
+        XCTAssertTrue(share.popoverPresentationController?.barButtonItem === shareItem,
+                      "iPad sharing must anchor to the actual toolbar item")
+        XCTAssertEqual(game.record?.id, recordID)
+        XCTAssertEqual(game.record?.moves, moves)
+        XCTAssertEqual(game.whiteAtBottom, orientation, "Toolbar actions must not flip the board")
+    }
+
     func testStrengthMenusDescribeEloAndExactCurrentLevel() async throws {
         let (game, _) = try await makeGame()
         game.newGame()
@@ -1218,14 +1276,9 @@ final class GameTests: XCTestCase {
         _ = try await game.addPuzzle(fen: "4k3/8/8/8/8/8/8/R3K3 w - - 0 1", playerWhite: true)
         let screen = GameViewController(game: game)
         screen.loadViewIfNeeded()
-        let menu = try XCTUnwrap(screen.navigationItem.rightBarButtonItems?.first?.menu)
-        func titles(_ element: UIMenuElement) -> [String] {
-            [element.title] + ((element as? UIMenu)?.children.flatMap(titles) ?? [])
-        }
-        XCTAssertFalse(titles(menu).contains("Mode"))
-        XCTAssertFalse(titles(menu).contains("Practice both sides"))
-        XCTAssertTrue(titles(menu).contains("Game settings"))
-        XCTAssertFalse(titles(menu).contains("All settings…"))
+        let toolbar = try XCTUnwrap(screen.navigationItem.rightBarButtonItems)
+        XCTAssertEqual(Set(toolbar.compactMap(\.accessibilityLabel)), ["Game settings", "Share PGN"])
+        XCTAssertTrue(toolbar.allSatisfy { $0.menu == nil })
         let buttons = descendants(of: screen.view).compactMap { $0 as? UIButton }
         XCTAssertTrue(buttons.contains { $0.configuration?.title == "Resign" })
         XCTAssertFalse(buttons.contains { $0.configuration?.title == "Finish" })
