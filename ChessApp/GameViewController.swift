@@ -87,9 +87,9 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         movesTable.dataSource = self
         movesTable.delegate = self
         movesTable.separatorColor = ForkChessTheme.line
-        movesTable.backgroundColor = .white
+        movesTable.backgroundColor = ForkChessTheme.surface
         movesTable.layer.cornerRadius = 12
-        movesTable.layer.borderColor = ForkChessTheme.line.cgColor
+        movesTable.setThemeBorderColor(ForkChessTheme.line)
         movesTable.layer.borderWidth = 0.6
         movesTable.clipsToBounds = true
         movesTable.allowsSelection = false
@@ -654,7 +654,6 @@ final class PromotionPickerViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = ForkChessTheme.background
-        overrideUserInterfaceStyle = .light
         let choices = UIStackView()
         choices.distribution = .fillEqually
         choices.spacing = 4
@@ -725,7 +724,7 @@ private final class MoveCell: UITableViewCell {
             guard let self, let ply = self.blackPly else { return }; self.select?(ply)
         }, for: .touchUpInside)
         for button in [whiteRedo, blackRedo] {
-            button.configuration = .forkChess(title: "重走", background: ForkChessTheme.accent,
+            button.configuration = .forkChess(title: "重走", background: ForkChessTheme.actionFill,
                                                 foreground: .white, size: 12,
                                                 insets: .init(top: 3, leading: 5, bottom: 3, trailing: 5))
             let width = button.widthAnchor.constraint(equalToConstant: 44)
@@ -772,14 +771,13 @@ private final class MoveCell: UITableViewCell {
             redoButton.accessibilityLabel = exists ? "重走 \(notation[index])" : nil
             if ratings.indices.contains(index), let rating = ratings[index] {
                 ratingLabel.text = rating.rawValue
-                ratingLabel.textColor = rating == .good ? UIColor(red: 0.15, green: 0.45, blue: 0.30, alpha: 1)
-                    : rating == .ok ? UIColor(red: 0.55, green: 0.37, blue: 0.06, alpha: 1)
-                    : UIColor(red: 0.70, green: 0.22, blue: 0.19, alpha: 1)
+                ratingLabel.textColor = rating == .good ? ForkChessTheme.good
+                    : rating == .ok ? ForkChessTheme.okay : ForkChessTheme.bad
                 ratingLabel.isHidden = false
             } else { ratingLabel.isHidden = true }
         }
         backgroundColor = selectedPly == whitePly || selectedPly == blackPly
-            ? ForkChessTheme.panel.withAlphaComponent(0.7) : .white
+            ? ForkChessTheme.panel.withAlphaComponent(0.7) : ForkChessTheme.surface
     }
 }
 

@@ -144,7 +144,6 @@ final class PuzzlePiecePickerViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        overrideUserInterfaceStyle = .light
         view.backgroundColor = ForkChessTheme.background
         squareLabel.accessibilityTraits = .header
         [squareLabel, palette].forEach { view.addSubview($0) }

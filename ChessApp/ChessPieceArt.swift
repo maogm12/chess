@@ -2,7 +2,7 @@ import UIKit
 
 /// Vector artwork for the chess pieces, converted from the supplied 48×48 SVG icon set.
 /// Keeping the geometry as paths (instead of raster assets) means every piece stays crisp at
-/// board size and inside the captured-piece trays, and the colors follow `ForkChessTheme`.
+/// board size and inside the captured-piece trays. Piece colors retain their side in both appearances.
 
 enum ChessPieceInk {
     case body
@@ -321,6 +321,11 @@ extension ChessPieceArt {
         context.setLineCap(.round)
         for shape in shapes {
             if let fill = shape.fill {
+                if !isWhite {
+                    ChessPiecePalette.outline.setStroke()
+                    shape.path.lineWidth = 1.25
+                    shape.path.stroke()
+                }
                 color(fill, isWhite: isWhite).setFill()
                 shape.path.usesEvenOddFillRule = shape.evenOdd
                 shape.path.fill()
@@ -354,6 +359,7 @@ class ChessPieceArtworkView: UIView {
         contentMode = .redraw
         isUserInteractionEnabled = false
         isAccessibilityElement = false
+        redrawOnAppearanceChange()
     }
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("Use init(frame:)") }
@@ -362,35 +368,7 @@ class ChessPieceArtworkView: UIView {
 
     override func draw(_ rect: CGRect) {
         guard let context = UIGraphicsGetCurrentContext() else { return }
-        let shapes = ChessPieceArt.shapes(kind: kind, isWhite: isWhite)
-        guard !shapes.isEmpty else { return }
-        let side = min(bounds.width, bounds.height)
-        let scale = side / 48
-        context.saveGState()
-        context.translateBy(x: (bounds.width - side) / 2, y: (bounds.height - side) / 2)
-        context.scaleBy(x: scale, y: scale)
-        context.setLineJoin(.round)
-        context.setLineCap(.round)
-        for shape in shapes {
-            if let fill = shape.fill {
-                color(fill).setFill()
-                shape.path.usesEvenOddFillRule = shape.evenOdd
-                shape.path.fill()
-            }
-            if let stroke = shape.stroke, shape.strokeWidth > 0 {
-                color(stroke).setStroke()
-                shape.path.lineWidth = shape.strokeWidth
-                shape.path.stroke()
-            }
-        }
-        context.restoreGState()
-    }
-
-    private func color(_ ink: ChessPieceInk) -> UIColor {
-        switch ink {
-        case .body: return ChessPiecePalette.body(isWhite: isWhite)
-        case .ink: return ChessPiecePalette.ink
-        }
+        ChessPieceArt.draw(kind: kind, isWhite: isWhite, in: bounds, context: context)
     }
 }
 
@@ -399,5 +377,7 @@ enum ChessPiecePalette {
     static func body(isWhite: Bool) -> UIColor {
         isWhite ? UIColor(red: 1.0, green: 0.98, blue: 0.94, alpha: 1) : ink
     }
-    static let ink = ForkChessTheme.navy
+    static let ink = UIColor(red: 0.055, green: 0.125, blue: 0.220, alpha: 1)
+    static let outline = ForkChessTheme.adaptive(.clear,
+                                                dark: UIColor(red: 0.58, green: 0.67, blue: 0.73, alpha: 1))
 }

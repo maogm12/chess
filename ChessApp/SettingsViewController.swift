@@ -99,7 +99,7 @@ final class SettingsViewController: GameObservingViewController, UITableViewData
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let row = sections[indexPath.section].rows[indexPath.row]
         let cell = UITableViewCell(style: .value1, reuseIdentifier: nil)
-        cell.backgroundColor = .white
+        cell.backgroundColor = ForkChessTheme.surface
         cell.textLabel?.textColor = ForkChessTheme.navy
         cell.textLabel?.numberOfLines = 0
         cell.detailTextLabel?.textColor = ForkChessTheme.slate
@@ -209,7 +209,7 @@ final class SettingsViewController: GameObservingViewController, UITableViewData
     private func toggle(_ label: String, value: Bool, changed: @escaping (Bool) -> Void) -> UISwitch {
         let control = UISwitch()
         control.isOn = value
-        control.onTintColor = ForkChessTheme.accent
+        control.onTintColor = ForkChessTheme.actionFill
         control.accessibilityLabel = label
         control.addAction(UIAction { [weak control] _ in
             guard let control else { return }; changed(control.isOn)

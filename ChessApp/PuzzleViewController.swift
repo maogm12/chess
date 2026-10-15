@@ -5,6 +5,7 @@ final class PuzzleViewController: GameObservingViewController, UICollectionViewD
     private let grid = UICollectionView(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
     private var puzzles: [SavedGame] = []
     private var tileSize = CGSize.zero
+    private var renderedBoardTheme: String?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -53,8 +54,9 @@ final class PuzzleViewController: GameObservingViewController, UICollectionViewD
     override func updateView() {
         guard isViewLoaded else { return }
         let next = game.games.filter(\.isSavedPractice).sorted { $0.date > $1.date }
-        if next != puzzles {
+        if next != puzzles || renderedBoardTheme != game.settings.boardTheme {
             puzzles = next
+            renderedBoardTheme = game.settings.boardTheme
             grid.reloadData()
         }
     }
@@ -125,14 +127,20 @@ final class PuzzleTile: UICollectionViewCell {
     private let preview = UIImageView()
     private let title = chessLabel(size: 14, weight: .semibold)
     private let detail = chessLabel(size: 12, color: ForkChessTheme.slate)
+    private var record: SavedGame?
+    private var colors: [UIColor] = []
+    private var previewSide: CGFloat = 40
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        contentView.backgroundColor = .white
+        contentView.backgroundColor = ForkChessTheme.surface
         contentView.layer.cornerRadius = ForkChessTheme.radius
         contentView.layer.cornerCurve = .continuous
         contentView.layer.borderWidth = 1
-        contentView.layer.borderColor = ForkChessTheme.line.cgColor
+        contentView.setThemeBorderColor(ForkChessTheme.line)
+        registerForTraitChanges([UITraitUserInterfaceStyle.self, UITraitDisplayScale.self]) { (tile: PuzzleTile, _: UITraitCollection) in
+            tile.updatePreview()
+        }
         preview.contentMode = .scaleAspectFill
         preview.clipsToBounds = true
         preview.layer.cornerRadius = 7
@@ -160,8 +168,10 @@ final class PuzzleTile: UICollectionViewCell {
     required init?(coder: NSCoder) { fatalError("Use init(frame:)") }
 
     func apply(_ record: SavedGame, colors: [UIColor], previewSide: CGFloat) {
-        preview.image = PuzzleThumbnail.image(fen: record.baseFEN, side: max(40, previewSide), colors: colors,
-                                             whiteAtBottom: record.defaultWhiteAtBottom)
+        self.record = record
+        self.colors = colors
+        self.previewSide = max(40, previewSide)
+        updatePreview()
         title.text = record.playerWhite ? "You play White" : "You play Black"
         detail.text = record.moves.isEmpty
             ? record.date.formatted(.dateTime.month(.abbreviated).day())
@@ -172,7 +182,13 @@ final class PuzzleTile: UICollectionViewCell {
     }
 
     override var isHighlighted: Bool {
-        didSet { contentView.backgroundColor = isHighlighted ? ForkChessTheme.panel : .white }
+        didSet { contentView.backgroundColor = isHighlighted ? ForkChessTheme.panel : ForkChessTheme.surface }
+    }
+
+    private func updatePreview() {
+        guard let record else { return }
+        preview.image = PuzzleThumbnail.image(fen: record.baseFEN, side: previewSide, colors: colors,
+                                             whiteAtBottom: record.defaultWhiteAtBottom, traits: traitCollection)
     }
 }
 
@@ -190,7 +206,7 @@ final class AddPuzzleTile: UICollectionViewCell {
         contentView.layer.cornerRadius = ForkChessTheme.radius
         contentView.layer.cornerCurve = .continuous
         contentView.layer.borderWidth = 1
-        contentView.layer.borderColor = ForkChessTheme.accent.withAlphaComponent(0.5).cgColor
+        contentView.setThemeBorderColor(ForkChessTheme.accent.withAlphaComponent(0.5))
         symbol.tintColor = ForkChessTheme.accent
         detail.textAlignment = .center
         title.textAlignment = .center

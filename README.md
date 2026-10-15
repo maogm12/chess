@@ -21,10 +21,15 @@ no signing identity or credentials are committed here.
   the Home → History → Game navigation stack.
   Home cards use the app's own visual language: theme fills, one shared corner radius, serif
   section headings, and no reference-screenshot chrome such as badge chips, stripes, or arrows.
+- System light and dark appearance, including navigation, settings, history, puzzle
+  previews and piece pickers. Switching appearance updates open screens immediately.
+  Slate, Forest and Walnut boards each have a muted dark palette; black pieces keep
+  their navy fill with a fine light contour, and white pieces keep their ivory fill.
+  Appearance follows iOS across all games.
 - Flat vector piece art from the `design/chess_pieces` icon set: white pieces use an ivory fill with
   a navy outline, black pieces are solid navy with transparent apertures. The geometry is drawn as
   paths in `ChessPieceArt.swift`, so pieces stay sharp at board size and in the captured-piece trays,
-  and the colors come from the app theme.
+  and side colors remain distinct in both appearances.
 - Bot skill levels 0–20 (mapped to Arasan strength) and bounded thinking time (0.4, 1, or 2 seconds).
   App Settings and Game settings show estimated Elo and the exact current level, including slider
   values between presets. Estimates follow the bundled Arasan `Options::getRating` scale
@@ -129,6 +134,9 @@ migration, including preservation of history branches and newer saves.
 They also verify global/default/game setting isolation, legacy configuration
 migration, per-game rating behavior, and branch timer preservation when a game's
 duration changes.
+Appearance coverage checks text and coordinate contrast, stable black/white piece
+identity, opaque highlight blending, trait-aware thumbnail caching, and live
+light/dark/light switching on existing screens without changing saved game state.
 They cover White/Black games, hints, undo, resignation, complete-game results,
 storage and settings restoration, history/replay/PGN, promotion, cancellation,
 hand-built puzzle setup and validation, add-tile navigation, square popovers and disabled choices,

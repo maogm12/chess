@@ -19,8 +19,12 @@ final class ChessBoardView: UIView {
         grid.layer.cornerRadius = 5
         grid.clipsToBounds = true
         grid.layer.borderWidth = 0.5
-        grid.layer.borderColor = ForkChessTheme.navy.withAlphaComponent(0.1).cgColor
+        grid.setThemeBorderColor(ForkChessTheme.line)
         addSubview(grid)
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (board: ChessBoardView, _: UITraitCollection) in
+            board.setNeedsLayout()
+            board.endingMarker.setNeedsDisplay()
+        }
         for index in 0..<64 {
             let square = BoardSquare()
             square.accessibilityIdentifier = "square-\(game.squareLabel(index))"
@@ -158,6 +162,10 @@ final class ChessBoardView: UIView {
         let inset: CGFloat = max(2, size * 0.06)
         let labelHeight: CGFloat = min(12, size * 0.28)
         for index in 0..<8 {
+            let rankSquare = (game.whiteAtBottom ? 7 - index : index) * 8
+            let fileSquare = game.whiteAtBottom ? index : 7 - index
+            rankLabels[index].textColor = coordinateColor(at: rankSquare)
+            fileLabels[index].textColor = coordinateColor(at: fileSquare)
             rankLabels[index].isHidden = !game.settings.coordinates
             fileLabels[index].isHidden = !game.settings.coordinates
             rankLabels[index].text = "\(game.whiteAtBottom ? 8 - index : index + 1)"
@@ -190,6 +198,11 @@ final class ChessBoardView: UIView {
         let size = min(22, frame.width * 0.36)
         let inset = max(2, frame.width * 0.04)
         endingMarker.frame = CGRect(x: frame.maxX - size - inset, y: frame.minY + inset, width: size, height: size)
+    }
+
+    private func coordinateColor(at square: Int) -> UIColor {
+        let color = colors[(square / 8 + square % 8).isMultiple(of: 2) ? 1 : 0]
+        return ChessBoardPalette.coordinateColor(on: color, traits: traitCollection)
     }
 
     private func squareFrame(_ square: Int) -> CGRect {
@@ -232,10 +245,11 @@ private enum BoardHighlights {
 private final class BoardEndingMarker: UIView {
     enum Ending { case checkmate, stalemate }
     static let mateColor = UIColor(red: 0.80, green: 0.15, blue: 0.20, alpha: 1)
+    static let stalemateColor = UIColor(red: 0.35, green: 0.43, blue: 0.52, alpha: 1)
     var ending: Ending = .checkmate { didSet { setNeedsDisplay() } }
 
     override func draw(_ rect: CGRect) {
-        (ending == .checkmate ? Self.mateColor : ForkChessTheme.slate).setFill()
+        (ending == .checkmate ? Self.mateColor : Self.stalemateColor).setFill()
         UIBezierPath(ovalIn: bounds).fill()
         let path = UIBezierPath()
         let inset = bounds.width * 0.31
@@ -263,12 +277,18 @@ private final class BoardSquare: UIButton {
     var target = false
     var occupied = false
     var selectionHighlighted = false
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        redrawOnAppearanceChange()
+    }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("Use init(frame:)") }
+
     override func draw(_ rect: CGRect) {
-        // Paint the square here instead of using backgroundColor: an opaque layer
-        // background would premultiply the translucent highlights below to black.
+        // Blend translucent highlights over the square, preserving its opaque base.
         baseColor.setFill()
         UIRectFill(bounds)
-        for color in overlays { color.setFill(); UIRectFill(bounds) }
+        for color in overlays { color.setFill(); UIRectFillUsingBlendMode(bounds, .normal) }
         if selectionHighlighted {
             let border = UIBezierPath(roundedRect: bounds.insetBy(dx: 1.5, dy: 1.5), cornerRadius: bounds.width * 0.07)
             BoardHighlights.selection.setStroke()

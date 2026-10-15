@@ -52,7 +52,7 @@ final class HomeViewController: GameObservingViewController {
         whiteTile.addAction(UIAction { [weak self] _ in self?.game.settings.playWhite = true }, for: .touchUpInside)
         blackTile.addAction(UIAction { [weak self] _ in self?.game.settings.playWhite = false }, for: .touchUpInside)
 
-        startButton.configuration = .forkChess(title: "Start new game", background: ForkChessTheme.accent,
+        startButton.configuration = .forkChess(title: "Start new game", background: ForkChessTheme.actionFill,
                                                 foreground: .white, size: 19,
                                                 insets: .init(top: 17, leading: 18, bottom: 17, trailing: 18))
         startButton.accessibilityLabel = "Start new game"
@@ -160,6 +160,9 @@ private final class SideTile: UIControl {
         accessibilityLabel = badge.text
         isAccessibilityElement = true
         accessibilityTraits = .button
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (tile: SideTile, _: UITraitCollection) in
+            tile.setSelected(tile.isSelected)
+        }
         setSelected(false)
     }
     @available(*, unavailable)
@@ -174,8 +177,9 @@ private final class SideTile: UIControl {
     }
     func setSelected(_ selected: Bool) {
         isSelected = selected
-        backgroundColor = selected ? .white : ForkChessTheme.panel
-        layer.borderColor = (selected ? ForkChessTheme.accent : ForkChessTheme.line).cgColor
+        backgroundColor = selected ? ForkChessTheme.surface : ForkChessTheme.panel
+        layer.borderColor = (selected ? ForkChessTheme.accent : ForkChessTheme.line)
+            .resolvedColor(with: traitCollection).cgColor
         layer.borderWidth = selected ? 2 : 1
         badge.font = .systemFont(ofSize: 14, weight: selected ? .semibold : .regular)
         badge.textColor = selected ? ForkChessTheme.navy : ForkChessTheme.slate
