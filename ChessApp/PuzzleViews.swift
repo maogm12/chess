@@ -19,6 +19,13 @@ final class SetupSquare: UIControl {
     var glyph: (kind: Character, isWhite: Bool)? { didSet { setNeedsDisplay() } }
     var hints: [(text: String, corner: Hint)] = [] { didSet { setNeedsDisplay() } }
 
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        redrawOnAppearanceChange()
+    }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("Use init(frame:)") }
+
     override func draw(_ rect: CGRect) {
         baseColor.setFill()
         UIRectFill(bounds)
@@ -30,7 +37,7 @@ final class SetupSquare: UIControl {
         let size = max(8, min(11, bounds.height * 0.24))
         let attributes: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: size, weight: .semibold),
-            .foregroundColor: ForkChessTheme.slate
+            .foregroundColor: ChessBoardPalette.coordinateColor(on: baseColor, traits: traitCollection)
         ]
         let inset = max(2, min(bounds.width, bounds.height) * 0.07)
         for hint in hints {
@@ -75,7 +82,10 @@ final class SetupBoardView: UIView {
         grid.layer.cornerRadius = 5
         grid.clipsToBounds = true
         grid.layer.borderWidth = 0.5
-        grid.layer.borderColor = ForkChessTheme.navy.withAlphaComponent(0.1).cgColor
+        grid.setThemeBorderColor(ForkChessTheme.line)
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (board: SetupBoardView, _: UITraitCollection) in
+            board.refresh()
+        }
         addSubview(grid)
         for index in 0..<64 {
             let cell = SetupSquare()
@@ -145,7 +155,7 @@ final class SetupBoardView: UIView {
             } ?? "Empty square"
             cell.accessibilityLabel = "\(coordinate), \(name)"
             cell.accessibilityTraits = selectedSquare == index ? [.button, .selected] : .button
-            cell.layer.borderColor = ForkChessTheme.accent.cgColor
+            cell.layer.borderColor = ForkChessTheme.accent.resolvedColor(with: traitCollection).cgColor
             cell.layer.borderWidth = selectedSquare == index ? 2 : 0
             cell.layer.zPosition = selectedSquare == index ? 1 : 0
             cell.setNeedsDisplay()
@@ -173,6 +183,7 @@ final class PiecePaletteView: UIView {
             eraser.tintColor = ForkChessTheme.slate
             eraser.contentMode = .scaleAspectFit
             [glyph, eraser].forEach { $0.isUserInteractionEnabled = false; addSubview($0) }
+            setThemeBorderColor(ForkChessTheme.accent)
             refresh()
         }
         @available(*, unavailable)
@@ -187,7 +198,6 @@ final class PiecePaletteView: UIView {
         private func refresh() {
             backgroundColor = chosen ? ForkChessTheme.panel : .clear
             layer.borderWidth = chosen ? 1.5 : 0
-            layer.borderColor = ForkChessTheme.accent.cgColor
             accessibilityTraits = chosen ? [.button, .selected] : .button
             if !isEnabled { accessibilityTraits.insert(.notEnabled) }
         }
@@ -258,21 +268,26 @@ final class PiecePaletteView: UIView {
 enum PuzzleThumbnail {
     private static var cache: [String: UIImage] = [:]
 
-    static func image(fen: String, side: CGFloat, colors: [UIColor], whiteAtBottom: Bool) -> UIImage {
-        let key = "\(fen)|\(whiteAtBottom)|\(Int(side.rounded()))|\(colors.map(\.description).joined(separator: ","))"
+    static func image(fen: String, side: CGFloat, colors: [UIColor], whiteAtBottom: Bool,
+                      traits: UITraitCollection = .current) -> UIImage {
+        let colors = colors.map { $0.resolvedColor(with: traits) }
+        let key = "\(fen)|\(whiteAtBottom)|\(side)|\(traits.userInterfaceStyle.rawValue)|\(traits.displayScale)|\(colors.map(\.description).joined(separator: ","))"
         if let cached = cache[key] { return cached }
         let squares = ChessPosition.squares(from: fen)
-        let image = UIGraphicsImageRenderer(size: CGSize(width: side, height: side)).image { context in
-            for index in 0..<64 {
-                let file = index % 8
-                let rank = index / 8
-                let rect = ChessBoardLayout.squareFrame(index, side: side, whiteAtBottom: whiteAtBottom)
-                colors[(rank + file).isMultiple(of: 2) ? 1 : 0].setFill()
-                UIRectFill(rect)
-                guard let piece = ChessPosition.piece(squares[index]) else { continue }
-                ChessPieceArt.draw(kind: piece.kind, isWhite: piece.isWhite,
-                                   in: ChessBoardLayout.pieceFrame(in: rect),
-                                   context: context.cgContext)
+        let format = UIGraphicsImageRendererFormat(for: traits)
+        let image = UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { context in
+            traits.performAsCurrent {
+                for index in 0..<64 {
+                    let file = index % 8
+                    let rank = index / 8
+                    let rect = ChessBoardLayout.squareFrame(index, side: side, whiteAtBottom: whiteAtBottom)
+                    colors[(rank + file).isMultiple(of: 2) ? 1 : 0].setFill()
+                    UIRectFill(rect)
+                    guard let piece = ChessPosition.piece(squares[index]) else { continue }
+                    ChessPieceArt.draw(kind: piece.kind, isWhite: piece.isWhite,
+                                       in: ChessBoardLayout.pieceFrame(in: rect),
+                                       context: context.cgContext)
+                }
             }
         }
         cache[key] = image

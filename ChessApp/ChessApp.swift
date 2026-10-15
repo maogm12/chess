@@ -20,7 +20,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let game = GameViewModel()
         let navigation = ChessNavigationController(rootViewController: HomeViewController(game: game))
         let window = UIWindow(windowScene: scene)
-        window.overrideUserInterfaceStyle = .light
         window.tintColor = ForkChessTheme.accent
         window.rootViewController = navigation
         self.game = game

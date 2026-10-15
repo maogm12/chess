@@ -595,6 +595,208 @@ final class GameTests: XCTestCase {
         }
     }
 
+    func testAppearanceContrastAndPieceIdentity() {
+        for style in [UIUserInterfaceStyle.light, .dark] {
+            let traits = UITraitCollection(userInterfaceStyle: style)
+            for surface in [ForkChessTheme.background, ForkChessTheme.surface, ForkChessTheme.panel] {
+                for text in [ForkChessTheme.navy, ForkChessTheme.slate, ForkChessTheme.accent] {
+                    XCTAssertGreaterThanOrEqual(contrast(text, surface, traits: traits), 4.5,
+                                                "Readable text on all surfaces in \(style)")
+                }
+            }
+            XCTAssertGreaterThanOrEqual(contrast(.white, ForkChessTheme.actionFill, traits: traits), 4.5)
+            XCTAssertLessThan(luminance(ChessPiecePalette.body(isWhite: false), traits: traits), 0.03)
+            XCTAssertGreaterThan(luminance(ChessPiecePalette.body(isWhite: true), traits: traits), 0.9)
+            for theme in ["Slate", "Forest", "Walnut"] {
+                for square in ChessBoardPalette.colors(for: theme) {
+                    let coordinate = ChessBoardPalette.coordinateColor(on: square, traits: traits)
+                    XCTAssertGreaterThanOrEqual(contrast(coordinate, square, traits: traits), 3.5,
+                                                "\(theme) coordinates in \(style)")
+                    XCTAssertGreaterThan(contrast(ChessPiecePalette.ink, square, traits: traits), 2)
+                }
+            }
+        }
+    }
+
+    func testScreensFollowLiveAppearanceChanges() async throws {
+        let (game, _) = try await makeGame()
+        _ = try await game.addPuzzle(fen: "7k/8/8/8/8/8/8/KR6 w - - 0 1", playerWhite: true)
+        game.newGame()
+        try await settle(game)
+        try await play("e2e4", in: game)
+        game.setSuspended(true, gameVisible: false)
+        let originalRecord = game.record
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = try XCTUnwrap(scene.windows.first)
+        let original = window.rootViewController
+        let originalStyle = window.overrideUserInterfaceStyle
+        defer {
+            window.rootViewController = original
+            window.overrideUserInterfaceStyle = originalStyle
+        }
+        let promotion = PromotionPickerViewController(moves: ["q", "r", "b", "n"].map {
+            LegalMove(uci: "a2a1\($0)", san: "a1=\($0.uppercased())")
+        }, isWhite: false)
+        let picker = PuzzlePiecePickerViewController()
+        picker.squareLabel.text = "a1"
+        for (name, controller) in [
+            ("Home", HomeViewController(game: game)),
+            ("Game", GameViewController(game: game)),
+            ("Settings", SettingsViewController(game: game)),
+            ("GameSettings", SettingsViewController(game: game, scope: .currentGame)),
+            ("History", HistoryViewController(game: game) { _ in }),
+            ("Puzzle", PuzzleViewController(game: game)),
+            ("PuzzleEditor", PuzzleEditorViewController(game: game) { _ in }),
+            ("Promotion", promotion),
+            ("PiecePicker", picker)
+        ] {
+            let navigation = ChessNavigationController(rootViewController: controller)
+            window.rootViewController = navigation
+            window.makeKeyAndVisible()
+            var lightPreview: Data?
+            for (pass, style) in [UIUserInterfaceStyle.light, .dark, .light].enumerated() {
+                window.overrideUserInterfaceStyle = style
+                window.layoutIfNeeded()
+                try await Task.sleep(nanoseconds: 150_000_000)
+                XCTAssertEqual(navigation.overrideUserInterfaceStyle, .unspecified)
+                XCTAssertEqual(controller.overrideUserInterfaceStyle, .unspecified)
+                XCTAssertEqual(controller.traitCollection.userInterfaceStyle, style, name)
+                let mismatches = descendants(of: controller.view).filter {
+                    guard $0.traitCollection.userInterfaceStyle != style else { return false }
+                    var ancestor: UIView? = $0
+                    while let view = ancestor {
+                        if view.isHidden || view.alpha == 0 { return false }
+                        ancestor = view.superview
+                    }
+                    return true
+                }
+                XCTAssertTrue(mismatches.isEmpty, "\(name) visible descendants inherit the appearance: \(mismatches)")
+                let titleColor = try XCTUnwrap(navigation.navigationBar.standardAppearance.titleTextAttributes[.foregroundColor] as? UIColor)
+                XCTAssertGreaterThanOrEqual(contrast(titleColor, ForkChessTheme.background,
+                                                     traits: controller.traitCollection), 4.5)
+                let background = try XCTUnwrap(controller.view.backgroundColor)
+                XCTAssertEqual(luminance(background, traits: controller.traitCollection),
+                               luminance(ForkChessTheme.background, traits: controller.traitCollection),
+                               accuracy: 0.001, name)
+                if let timeline = descendants(of: controller.view).first(where: {
+                    $0.accessibilityIdentifier == "move-timeline"
+                }) {
+                    let border = try XCTUnwrap(timeline.layer.borderColor)
+                    XCTAssertTrue(UIColor(cgColor: border).isEqual(
+                        ForkChessTheme.line.resolvedColor(with: timeline.traitCollection)),
+                                  "CGColor borders must refresh on the existing view")
+                }
+                for control in descendants(of: controller.view).compactMap({ $0 as? UISwitch }) {
+                    XCTAssertGreaterThanOrEqual(contrast(.white, try XCTUnwrap(control.onTintColor),
+                                                         traits: controller.traitCollection), 4.5)
+                }
+                if name == "Puzzle" {
+                    let tile = try XCTUnwrap(descendants(of: controller.view).first { $0 is PuzzleTile })
+                    let preview = try XCTUnwrap(descendants(of: tile).compactMap { ($0 as? UIImageView)?.image }.first)
+                    if style == .dark {
+                        XCTAssertNotEqual(preview.pngData(), lightPreview, "Visible thumbnails refresh on the existing tile")
+                    } else if let lightPreview {
+                        XCTAssertEqual(preview.pngData(), lightPreview, "Switching back restores the light preview")
+                    } else {
+                        lightPreview = preview.pngData()
+                    }
+                }
+                if pass < 2 {
+                    let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                        window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+                    }
+                    let imageName = "\(name)-\(style == .dark ? "Dark" : "Light")"
+                    writeReviewImage(image, named: imageName)
+                    let attachment = XCTAttachment(image: image)
+                    attachment.name = imageName
+                    attachment.lifetime = .keepAlways
+                    add(attachment)
+                }
+            }
+        }
+        XCTAssertEqual(game.record?.id, originalRecord?.id)
+        XCTAssertEqual(game.record?.branches, originalRecord?.branches)
+        XCTAssertEqual(game.record?.configuration, originalRecord?.configuration)
+    }
+
+    func testBoardHighlightsBlendWithBothAppearances() async throws {
+        let (game, _) = try await makeGame()
+        game.newGame()
+        try await settle(game)
+        try await play("e2e4", in: game)
+        let board = ChessBoardView(game: game)
+        board.frame = CGRect(x: 0, y: 0, width: 400, height: 400)
+        board.update(animated: false)
+        board.layoutIfNeeded()
+        let lastSource = try XCTUnwrap(game.lastMoveSquares.first { game.board[$0] == nil })
+        let square = try XCTUnwrap(descendants(of: board).first {
+            $0.accessibilityIdentifier == "square-\(game.squareLabel(lastSource))"
+        })
+        let base = ChessBoardPalette.colors(for: game.settings.boardTheme)[
+            (lastSource / 8 + lastSource % 8).isMultiple(of: 2) ? 1 : 0
+        ]
+        for style in [UIUserInterfaceStyle.light, .dark] {
+            let traits = UITraitCollection(userInterfaceStyle: style)
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            format.preferredRange = .standard
+            let image = UIGraphicsImageRenderer(size: square.bounds.size, format: format).image { _ in
+                traits.performAsCurrent { square.draw(square.bounds) }
+            }
+            var expectedR: CGFloat = 0, expectedG: CGFloat = 0, expectedB: CGFloat = 0, alpha: CGFloat = 0
+            base.resolvedColor(with: traits).getRed(&expectedR, green: &expectedG, blue: &expectedB, alpha: &alpha)
+            let actual = try samplePixel(in: image, x: 25, y: 25)
+            for (index, components) in [(expectedR, 1.0), (expectedG, 0.84), (expectedB, 0.18)].enumerated() {
+                XCTAssertEqual(actual[index], components.0 * 0.8 + components.1 * 0.2, accuracy: 0.02,
+                               "Highlights blend with the square rather than replacing its base")
+            }
+            XCTAssertEqual(actual[3], 1, accuracy: 0.01, "The square stays opaque")
+        }
+    }
+
+    private func samplePixel(in image: UIImage, x: Int, y: Int) throws -> [CGFloat] {
+        let cgImage = try XCTUnwrap(image.cgImage)
+        var pixel = [UInt8](repeating: 0, count: 4)
+        let context = try XCTUnwrap(CGContext(data: &pixel, width: 1, height: 1, bitsPerComponent: 8,
+                                             bytesPerRow: 4, space: CGColorSpaceCreateDeviceRGB(),
+                                             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        context.draw(cgImage, in: CGRect(x: -x, y: -y, width: cgImage.width, height: cgImage.height))
+        return pixel.map { CGFloat($0) / 255 }
+    }
+
+    func testPuzzleThumbnailAppearanceCache() throws {
+        let fen = GameViewModel.startFEN
+        let light = UITraitCollection { $0.userInterfaceStyle = .light; $0.displayScale = 2 }
+        let dark = UITraitCollection { $0.userInterfaceStyle = .dark; $0.displayScale = 2 }
+        let colors = ChessBoardPalette.colors(for: "Slate")
+        let before = PuzzleThumbnail.image(fen: fen, side: 240, colors: colors, whiteAtBottom: true, traits: light)
+        let after = PuzzleThumbnail.image(fen: fen, side: 240, colors: colors, whiteAtBottom: true, traits: dark)
+        XCTAssertNotEqual(before.pngData(), after.pngData())
+        XCTAssertTrue(before === PuzzleThumbnail.image(fen: fen, side: 240, colors: colors, whiteAtBottom: true, traits: light))
+        XCTAssertEqual(before.scale, 2)
+        // Even fixed square colors need distinct cached images for the black-piece contour.
+        let fixedColors = colors.map { $0.resolvedColor(with: dark) }
+        let fixedLight = PuzzleThumbnail.image(fen: fen, side: 240, colors: fixedColors, whiteAtBottom: true, traits: light)
+        let fixedDark = PuzzleThumbnail.image(fen: fen, side: 240, colors: fixedColors, whiteAtBottom: true, traits: dark)
+        XCTAssertNotEqual(fixedLight.pngData(), fixedDark.pngData())
+        XCTAssertNotEqual(after.pngData(), PuzzleThumbnail.image(
+            fen: fen, side: 240, colors: colors, whiteAtBottom: false, traits: dark).pngData())
+        XCTAssertNotEqual(after.pngData(), PuzzleThumbnail.image(
+            fen: fen, side: 240, colors: ChessBoardPalette.colors(for: "Forest"), whiteAtBottom: true, traits: dark).pngData())
+    }
+
+    private func luminance(_ color: UIColor, traits: UITraitCollection) -> CGFloat {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        color.resolvedColor(with: traits).getRed(&r, green: &g, blue: &b, alpha: &a)
+        let values = [r, g, b].map { $0 <= 0.04045 ? $0 / 12.92 : pow(($0 + 0.055) / 1.055, 2.4) }
+        return values[0] * 0.2126 + values[1] * 0.7152 + values[2] * 0.0722
+    }
+
+    private func contrast(_ first: UIColor, _ second: UIColor, traits: UITraitCollection) -> CGFloat {
+        let values = [luminance(first, traits: traits), luminance(second, traits: traits)].sorted()
+        return (values[1] + 0.05) / (values[0] + 0.05)
+    }
+
     private func inkPixels(in image: UIImage) -> Int {
         guard let cgImage = image.cgImage else { return 0 }
         let width = cgImage.width
@@ -1752,7 +1954,11 @@ final class GameTests: XCTestCase {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let window = try XCTUnwrap(scene.windows.first)
         let original = window.rootViewController
-        defer { window.rootViewController = original }
+        let originalStyle = window.overrideUserInterfaceStyle
+        defer {
+            window.rootViewController = original
+            window.overrideUserInterfaceStyle = originalStyle
+        }
         let screen = GameViewController(game: game)
         window.rootViewController = ChessNavigationController(rootViewController: screen)
         window.makeKeyAndVisible()
@@ -1827,6 +2033,22 @@ final class GameTests: XCTestCase {
         XCTAssertFalse(try XCTUnwrap(game.snapshot).inCheck)
         XCTAssertEqual(marker.accessibilityIdentifier, "stalemate-marker")
         try assertMarkerOnKing("h8", state: "Stalemate")
+        for style in [UIUserInterfaceStyle.light, .dark] {
+            window.overrideUserInterfaceStyle = style
+            render()
+            let image = UIGraphicsImageRenderer(bounds: marker.bounds).image { _ in
+                marker.traitCollection.performAsCurrent { marker.draw(marker.bounds) }
+            }
+            let pixel = try samplePixel(in: image, x: Int(marker.bounds.midX * image.scale),
+                                        y: Int(marker.bounds.midY * image.scale))
+            let fill = UIColor(red: pixel[0], green: pixel[1], blue: pixel[2], alpha: pixel[3])
+            XCTAssertGreaterThanOrEqual(contrast(.white, fill, traits: marker.traitCollection), 4.5,
+                                       "The pause bars need a dark fill in both appearances")
+            writeReviewImage(UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }, named: "StalemateBoard-\(style == .dark ? "Dark" : "Light")")
+        }
+        window.overrideUserInterfaceStyle = originalStyle
         writeReviewImage(UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }, named: "StalemateBoard")

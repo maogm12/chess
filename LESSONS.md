@@ -251,3 +251,45 @@ this file is for reusable project knowledge.
   checks redo visibility, and checks rated rows separately. UIWindow captures
   document the unselected and selected layouts; frame assertions establish
   layout stability that still images alone cannot prove.
+
+## Refresh derived drawing state when system appearance changes
+
+- Date and symptom: On 2026-10-14, adding dark appearance exposed fixed white
+  surfaces, a navigation title retaining its light-mode ink, stale layer borders,
+  and puzzle thumbnails that did not account for the current appearance.
+- Cause: The app forced light appearance. Dynamic UIColor alone does not refresh
+  CGColor assignments, rendered bitmap caches, custom drawing, or the resolved
+  title attributes retained by UINavigationBarAppearance. Sharing the text color
+  with black-piece ink would also turn black pieces pale in dark appearance.
+- Prevention: Keep semantic UI colors dynamic, keep piece identity colors fixed,
+  and refresh derived state on trait changes. Resolve navigation appearance and
+  border colors with the owning view's traits; redraw artwork and board squares.
+  Include appearance, scale, palette and perspective in thumbnail cache keys,
+  and render with those traits. Choose coordinate ink by square contrast.
+  Keep filled controls and ending badges dark enough for white text, thumbs and
+  symbols; a pale text accent is not a suitable fill.
+- Evidence: `ForkChessTheme`, `ChessNavigationController` and UIView helpers in
+  `UIKitSupport.swift`, `ChessPiecePalette` in `ChessPieceArt.swift`,
+  `PuzzleThumbnail` in `PuzzleViews.swift`, and `PuzzleTile` in
+  `PuzzleViewController.swift`.
+- Verification: All 45 integration tests passed on iPhone 17 Pro / iOS 26.5.
+  New tests check contrast, fixed piece identities, appearance-aware thumbnails,
+  and light/dark/light switching on the same screen instances, including border
+  and preview refresh while preserving saved game state. UIWindow screenshots
+  of the dark home, game, settings, puzzle library and editor were inspected.
+  Both existing anchored-popover tests also passed with the simulator set to
+  system dark appearance.
+
+## Blend board highlights over an opaque square
+
+- Date and symptom: On 2026-10-14, dark-mode screenshot review showed last-move
+  highlights as dark brown squares instead of translucent yellow over the board.
+- Cause: `BoardSquare.draw` used UIRectFill for both the base and overlays.
+  Its copy blend mode replaced the opaque base with a translucent color.
+- Prevention: Fill the base once, then use UIRectFillUsingBlendMode with `.normal`
+  for translucent overlays. Keep the resulting board square opaque.
+- Evidence: `BoardSquare.draw` in `ChessBoardView.swift`.
+- Verification: `testBoardHighlightsBlendWithBothAppearances` samples actual
+  rendered pixels against the expected source-over color and alpha in both
+  appearances. It passed in the full 45-test suite; the corrected dark game
+  screenshot shows the board beneath the yellow highlight.

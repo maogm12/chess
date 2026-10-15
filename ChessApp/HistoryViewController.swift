@@ -58,7 +58,7 @@ final class HistoryViewController: GameObservingViewController, UITableViewDataS
         configuration.secondaryTextProperties.numberOfLines = 0
         configuration.secondaryTextProperties.color = ForkChessTheme.slate
         cell.contentConfiguration = configuration
-        cell.backgroundColor = .white
+        cell.backgroundColor = ForkChessTheme.surface
         let share = chessButton("", icon: "square.and.arrow.up") { [weak self, weak cell] in
             guard let self, let cell else { return }
             self.share(record, from: cell)
