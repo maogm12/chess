@@ -228,3 +228,19 @@ final class KingArtworkView: ChessPieceArtworkView {
         isWhite = white
     }
 }
+
+/// Keep Settings and the in-game menu consistent, including slider values between presets.
+func botStrengthMenu(settings: PracticeSettings, select: @escaping (Int) -> Void) -> UIMenu {
+    var actions = PracticeSettings.strengthPresets.map { preset in
+        UIAction(title: "\(preset.name) · ≈\(PracticeSettings.estimatedElo(for: preset.skill)) Elo",
+                 subtitle: "Level \(preset.skill) of 20",
+                 state: settings.skill == preset.skill ? .on : .off) { _ in select(preset.skill) }
+    }
+    if !PracticeSettings.strengthPresets.contains(where: { $0.skill == settings.skill }) {
+        actions.insert(UIAction(title: settings.strengthDescription,
+                                subtitle: "Current · level \(settings.skill) of 20", state: .on) { _ in
+            select(settings.skill)
+        }, at: 0)
+    }
+    return UIMenu(title: "Bot strength", children: actions)
+}

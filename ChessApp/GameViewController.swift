@@ -577,10 +577,9 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
     }
 
     private func optionsMenu() -> UIMenu {
-        let skills: [(String, Int)] = [("Beginner", 2), ("Casual", 6), ("Club", 11), ("Expert", 16), ("Full strength", 20)]
-        let strength = UIMenu(title: "Bot strength", children: skills.map { name, value in
-            UIAction(title: name, state: game.settings.skill == value ? .on : .off) { [weak self] _ in self?.game.settings.skill = value }
-        })
+        let strength = botStrengthMenu(settings: game.settings) { [weak self] in
+            self?.game.settings.skill = $0
+        }
         let times: [(String, Double)] = [("Quick · 0.4 seconds", 0.4), ("Balanced · 1 second", 1), ("Deeper · 2 seconds", 2)]
         let thinking = UIMenu(title: "Thinking time", children: times.map { name, value in
             UIAction(title: name, state: game.settings.thinkSeconds == value ? .on : .off) { [weak self] _ in self?.game.settings.thinkSeconds = value }
