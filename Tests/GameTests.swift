@@ -1237,6 +1237,71 @@ final class GameTests: XCTestCase {
         XCTAssertEqual(game.games.count, 1)
     }
 
+    func testHistoryRowsKeepRedoHeightAcrossSelection() async throws {
+        let (game, _) = try await makeGame()
+        var record = SavedGame(playerWhite: true)
+        record.moves = ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5"]
+        record.notation = ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5"]
+        game.review(record)
+        try await settle(game)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = try XCTUnwrap(scene.windows.first)
+        let original = window.rootViewController
+        defer { window.rootViewController = original }
+        let screen = GameViewController(game: game)
+        window.rootViewController = ChessNavigationController(rootViewController: screen)
+        window.makeKeyAndVisible()
+        window.layoutIfNeeded()
+        screen.updateView()
+        screen.view.layoutIfNeeded()
+        let table = try XCTUnwrap(descendants(of: screen.view).first {
+            $0.accessibilityIdentifier == "move-timeline"
+        } as? UITableView)
+        func frames() -> [CGRect] {
+            table.layoutIfNeeded()
+            return (0..<table.numberOfRows(inSection: 0)).map { table.rectForRow(at: IndexPath(row: $0, section: 0)) }
+        }
+        func capture(_ name: String) {
+            writeReviewImage(UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }, named: name)
+        }
+        let initial = frames()
+        capture("HistoryRowsUnselected")
+        for ply in [1, 2, 3, 4, 5, 6] {
+            game.seek(ply)
+            try await settle(game)
+            screen.updateView()
+            screen.view.layoutIfNeeded()
+            let current = frames()
+            if ply == 3 { capture("HistoryRowsRedoSelected") }
+            XCTAssertEqual(current, initial, "Selecting human or bot moves must not change row geometry (ply \(ply))")
+            XCTAssertTrue(current.allSatisfy { abs($0.height - 40) < 0.5 })
+            let redo = try XCTUnwrap(descendants(of: table).first {
+                $0.accessibilityIdentifier == "redo-ply-\(ply)"
+            } as? UIButton)
+            XCTAssertEqual(redo.isHidden, ply.isMultiple(of: 2), "Only human moves offer redo")
+        }
+        game.returnToLatest()
+        try await settle(game)
+        screen.updateView()
+        XCTAssertEqual(frames(), initial, "Clearing selection keeps row geometry")
+
+        game.settings.moveRatingsEnabled = true
+        record.id = UUID()
+        record.ratings = Array(repeating: .good, count: record.moves.count)
+        record.syncSelectedBranch()
+        game.review(record)
+        try await settle(game)
+        screen.updateView()
+        let rated = frames()
+        game.seek(3)
+        try await settle(game)
+        screen.updateView()
+        XCTAssertEqual(frames(), rated)
+        XCTAssertTrue(rated.allSatisfy { abs($0.height - 54) < 0.5 }, "Rating labels retain their required space")
+    }
+
     func testUIKitMoveSelectionRedoAndBranchPages() async throws {
         let (game, _) = try await makeGame()
         var record = SavedGame(playerWhite: true)

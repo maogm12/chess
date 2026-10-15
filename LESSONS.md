@@ -173,3 +173,18 @@ this file is for reusable project knowledge.
   two-line fork, horizontal/vertical ownership, shared rows, both system pop
   recognizers, branch round trips and explicit navigation. Existing nested
   branch, partial drag and scroll-position tests cover populated continuations.
+
+## Reserve redo space before selecting a history move
+
+- Date and symptom: 2026-10-14, issue #11. Selecting a human move grew its
+  history row from 32 to 40 points and shifted every following row.
+- Cause: `GameViewController.tableView(_:heightForRowAt:)` based unrated row
+  height on `redoPly`, although selection should only reveal an inline action.
+- Prevention: Reserve the 40-point redo height for every unrated move row.
+  Keep rated rows at 54 points for their second line, independently of selection.
+  Preserve the human-only redo condition in the cell configuration.
+- Verification: `testHistoryRowsKeepRedoHeightAcrossSelection` compares complete
+  row frames across human/bot selection and returning to the latest position,
+  checks redo visibility, and checks rated rows separately. UIWindow captures
+  document the unselected and selected layouts; frame assertions establish
+  layout stability that still images alone cannot prove.
