@@ -18,7 +18,7 @@ final class SettingsViewController: GameObservingViewController, UITableViewData
                 footer: "Applies to new games. The countdown pauses when you leave the game. You can keep practicing when time runs out.",
                 rows: [.duration]),
         Section(title: "Bot",
-                footer: "Choose how strong the bot plays and how long it thinks. Hints always use full strength.",
+                footer: "Elo values are estimates from Arasan’s strength scale, not measured human ratings. Device and thinking time affect play. Hints always use full strength.",
                 rows: [.strength, .slider, .level, .thinking]),
         Section(title: "Practice feedback",
                 footer: "Show Good, OK, or Bad beside each new move, including the bot's moves. Ratings compare the move with the best available option and are estimates. Analysis adds a short pause after each move. Ratings are saved for replay.",
@@ -77,7 +77,9 @@ final class SettingsViewController: GameObservingViewController, UITableViewData
             })
         case .strength:
             cell.textLabel?.text = "Strength"
-            cell.detailTextLabel?.text = game.settings.difficulty
+            let button = picker(title: game.settings.strengthDescription, label: "Bot strength", options: [])
+            button.menu = botStrengthMenu(settings: game.settings) { [weak self] in self?.game.settings.skill = $0 }
+            cell.accessoryView = button
         case .slider:
             let slider = UISlider()
             slider.minimumValue = 0

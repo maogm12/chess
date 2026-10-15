@@ -26,6 +26,10 @@ no signing identity or credentials are committed here.
   paths in `ChessPieceArt.swift`, so pieces stay sharp at board size and in the captured-piece trays,
   and the colors come from the app theme.
 - Bot skill levels 0–20 (mapped to Arasan strength) and bounded thinking time (0.4, 1, or 2 seconds).
+  Settings and the game menu show estimated Elo and the exact current level, including slider
+  values between presets. Estimates follow the bundled Arasan `Options::getRating` scale
+  (1000–3450, with app skill × 5 as strength); these are not measured human ratings.
+  Device and thinking time affect actual play.
 - A **Puzzle** library of hand-built endgames. Every puzzle is a tile showing a preview of its
   starting position, the side you play, and its move count. The library and editor are full
   navigation pages. Returning from a puzzle game goes back to the library; saving replaces the

@@ -47,6 +47,37 @@ final class GameTests: XCTestCase {
         try await settle(game)
     }
 
+    func testStrengthMenusDescribeEloAndExactCurrentLevel() async throws {
+        let (game, _) = try await makeGame()
+        let screen = GameViewController(game: game)
+        screen.loadViewIfNeeded()
+        let settings = SettingsViewController(game: game)
+        settings.loadViewIfNeeded()
+        let table = try XCTUnwrap(descendants(of: settings.view).first { $0 is UITableView } as? UITableView)
+        // Keep expectations independent of the displayed labels and preset builder.
+        XCTAssertEqual([2, 6, 11, 16, 20].map { PracticeSettings.estimatedElo(for: $0) }, [1245, 1735, 2347, 2960, 3450])
+        for skill in 0...20 {
+            game.settings.skill = skill
+            screen.updateView()
+            settings.updateView()
+            let menu = try XCTUnwrap(screen.navigationItem.rightBarButtonItems?.first?.menu)
+            let strength = try XCTUnwrap(menu.children.first as? UIMenu)
+            let actions = strength.children.compactMap { $0 as? UIAction }
+            let selected = actions.filter { $0.state == .on }
+            XCTAssertEqual(selected.count, 1, "Exactly one current level, including slider level \(skill)")
+            XCTAssertTrue(selected.first?.title.contains("≈\(PracticeSettings.estimatedElo(for: skill)) Elo") == true)
+            XCTAssertTrue(selected.first?.subtitle?.contains("\(skill) of 20") == true)
+            XCTAssertTrue(actions.allSatisfy { $0.title.contains("Elo") && $0.title.contains("≈") })
+            let cell = settings.tableView(table, cellForRowAt: IndexPath(row: 0, section: 2))
+            let picker = try XCTUnwrap(cell.accessoryView as? UIButton)
+            let settingsActions = try XCTUnwrap(picker.menu).children.compactMap { $0 as? UIAction }
+            XCTAssertEqual(settingsActions.map(\.title), actions.map(\.title))
+            XCTAssertEqual(settingsActions.map(\.state), actions.map(\.state))
+            let restored = try JSONDecoder().decode(PracticeSettings.self, from: JSONEncoder().encode(game.settings))
+            XCTAssertEqual(restored.skill, skill, "Display must preserve existing settings")
+        }
+    }
+
     func testForkChessIdentityAndPGNBranding() async throws {
         XCTAssertEqual(Bundle.main.bundleIdentifier, "com.maogm12.forkchess")
         XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String, "ForkChess")
