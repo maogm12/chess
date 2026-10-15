@@ -47,6 +47,44 @@ final class GameTests: XCTestCase {
         try await settle(game)
     }
 
+    func testStrengthMenusDescribeEloAndExactCurrentLevel() async throws {
+        let (game, _) = try await makeGame()
+        game.newGame()
+        try await settle(game)
+        let settings = SettingsViewController(game: game)
+        settings.loadViewIfNeeded()
+        let table = try XCTUnwrap(descendants(of: settings.view).first { $0 is UITableView } as? UITableView)
+        let local = SettingsViewController(game: game, scope: .currentGame)
+        local.loadViewIfNeeded()
+        let localTable = try XCTUnwrap(descendants(of: local.view).first { $0 is UITableView } as? UITableView)
+        // Keep expectations independent of the displayed labels and preset builder.
+        XCTAssertEqual([2, 6, 11, 16, 20].map { PracticeSettings.estimatedElo(for: $0) }, [1245, 1735, 2347, 2960, 3450])
+        for skill in 0...20 {
+            game.settings.skill = skill
+            var configuration = game.gameSettings
+            configuration.skill = skill
+            game.updateGameSettings(configuration)
+            settings.updateView()
+            local.updateView()
+            let localCell = local.tableView(localTable, cellForRowAt: IndexPath(row: 0, section: 0))
+            let localPicker = try XCTUnwrap(localCell.accessoryView as? UIButton)
+            let strength = try XCTUnwrap(localPicker.menu)
+            let actions = strength.children.compactMap { $0 as? UIAction }
+            let selected = actions.filter { $0.state == .on }
+            XCTAssertEqual(selected.count, 1, "Exactly one current level, including slider level \(skill)")
+            XCTAssertTrue(selected.first?.title.contains("≈\(PracticeSettings.estimatedElo(for: skill)) Elo") == true)
+            XCTAssertTrue(selected.first?.subtitle?.contains("\(skill) of 20") == true)
+            XCTAssertTrue(actions.allSatisfy { $0.title.contains("Elo") && $0.title.contains("≈") })
+            let cell = settings.tableView(table, cellForRowAt: IndexPath(row: 0, section: 1))
+            let picker = try XCTUnwrap(cell.accessoryView as? UIButton)
+            let settingsActions = try XCTUnwrap(picker.menu).children.compactMap { $0 as? UIAction }
+            XCTAssertEqual(settingsActions.map(\.title), actions.map(\.title))
+            XCTAssertEqual(settingsActions.map(\.state), actions.map(\.state))
+            let restored = try JSONDecoder().decode(PracticeSettings.self, from: JSONEncoder().encode(game.settings))
+            XCTAssertEqual(restored.skill, skill, "Display must preserve existing settings")
+        }
+    }
+
     func testForkChessIdentityAndPGNBranding() async throws {
         XCTAssertEqual(Bundle.main.bundleIdentifier, "com.maogm12.forkchess")
         XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String, "ForkChess")
@@ -1246,6 +1284,71 @@ final class GameTests: XCTestCase {
         XCTAssertEqual(game.games.count, 1)
     }
 
+    func testHistoryRowsKeepRedoHeightAcrossSelection() async throws {
+        let (game, _) = try await makeGame()
+        var record = SavedGame(playerWhite: true)
+        record.moves = ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5"]
+        record.notation = ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5"]
+        game.review(record)
+        try await settle(game)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = try XCTUnwrap(scene.windows.first)
+        let original = window.rootViewController
+        defer { window.rootViewController = original }
+        let screen = GameViewController(game: game)
+        window.rootViewController = ChessNavigationController(rootViewController: screen)
+        window.makeKeyAndVisible()
+        window.layoutIfNeeded()
+        screen.updateView()
+        screen.view.layoutIfNeeded()
+        let table = try XCTUnwrap(descendants(of: screen.view).first {
+            $0.accessibilityIdentifier == "move-timeline"
+        } as? UITableView)
+        func frames() -> [CGRect] {
+            table.layoutIfNeeded()
+            return (0..<table.numberOfRows(inSection: 0)).map { table.rectForRow(at: IndexPath(row: $0, section: 0)) }
+        }
+        func capture(_ name: String) {
+            writeReviewImage(UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }, named: name)
+        }
+        let initial = frames()
+        capture("HistoryRowsUnselected")
+        for ply in [1, 2, 3, 4, 5, 6] {
+            game.seek(ply)
+            try await settle(game)
+            screen.updateView()
+            screen.view.layoutIfNeeded()
+            let current = frames()
+            if ply == 3 { capture("HistoryRowsRedoSelected") }
+            XCTAssertEqual(current, initial, "Selecting human or bot moves must not change row geometry (ply \(ply))")
+            XCTAssertTrue(current.allSatisfy { abs($0.height - 40) < 0.5 })
+            let redo = try XCTUnwrap(descendants(of: table).first {
+                $0.accessibilityIdentifier == "redo-ply-\(ply)"
+            } as? UIButton)
+            XCTAssertEqual(redo.isHidden, ply.isMultiple(of: 2), "Only human moves offer redo")
+        }
+        game.returnToLatest()
+        try await settle(game)
+        screen.updateView()
+        XCTAssertEqual(frames(), initial, "Clearing selection keeps row geometry")
+
+        game.settings.moveRatingsEnabled = true
+        record.id = UUID()
+        record.ratings = Array(repeating: .good, count: record.moves.count)
+        record.syncSelectedBranch()
+        game.review(record)
+        try await settle(game)
+        screen.updateView()
+        let rated = frames()
+        game.seek(3)
+        try await settle(game)
+        screen.updateView()
+        XCTAssertEqual(frames(), rated)
+        XCTAssertTrue(rated.allSatisfy { abs($0.height - 54) < 0.5 }, "Rating labels retain their required space")
+    }
+
     func testUIKitMoveSelectionRedoAndBranchPages() async throws {
         let (game, _) = try await makeGame()
         var record = SavedGame(playerWhite: true)
@@ -1324,6 +1427,66 @@ final class GameTests: XCTestCase {
         try await settle(game)
         XCTAssertFalse(game.reviewing)
         XCTAssertEqual(game.active?.branchID, newBranch)
+    }
+
+    func testEmptyBranchContinuationOwnsHistorySwipes() async throws {
+        let (game, _) = try await makeGame()
+        var record = SavedGame(playerWhite: true)
+        record.moves = ["e2e4", "e7e5", "g1f3", "b8c6"]
+        record.notation = ["e4", "e5", "Nf3", "Nc6"]
+        record.fork(at: 2, seconds: 600)
+        let fixture = LocalLibrary(settings: game.settings, games: [record], activeID: record.id)
+        try JSONEncoder().encode(fixture).write(to: FileManager.default.temporaryDirectory.appendingPathComponent("EmptyBranchLibrary.json"))
+        let emptyBranch = record.branchID
+        game.review(record)
+        try await settle(game)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = try XCTUnwrap(scene.windows.first)
+        let original = window.rootViewController
+        defer { window.rootViewController = original }
+        let screen = GameViewController(game: game)
+        let nav = ChessNavigationController(rootViewController: UIViewController())
+        window.rootViewController = nav
+        nav.pushViewController(screen, animated: false)
+        window.makeKeyAndVisible()
+        window.layoutIfNeeded()
+        screen.updateView()
+        screen.view.layoutIfNeeded()
+        let table = try XCTUnwrap(descendants(of: screen.view).first {
+            $0.accessibilityIdentifier == "move-timeline"
+        } as? UITableView)
+        table.layoutIfNeeded()
+        let forkRow = IndexPath(row: table.numberOfRows(inSection: 0) - 1, section: 0)
+        let blank = CGPoint(x: table.bounds.midX, y: table.rectForRow(at: forkRow).maxY + 20)
+        XCTAssertTrue(table.bounds.contains(blank))
+        XCTAssertNil(table.indexPathForRow(at: blank), "Reproduce the blank area with no move cell")
+        XCTAssertEqual(screen.branchPoint(at: blank)?.ply, 2)
+        XCTAssertTrue(screen.shouldPageHistory(at: blank, velocity: CGPoint(x: 200, y: 20)))
+        XCTAssertTrue(screen.shouldPageHistory(at: blank, velocity: CGPoint(x: -200, y: 20)))
+        XCTAssertFalse(screen.shouldPageHistory(at: blank, velocity: CGPoint(x: 20, y: 200)),
+                       "Vertical history scrolling stays native")
+        XCTAssertNil(screen.branchPoint(at: CGPoint(x: blank.x, y: table.bounds.maxY + 1)))
+        XCTAssertNil(screen.branchPoint(at: CGPoint(x: blank.x, y: table.rectForRow(at: IndexPath(row: 0, section: 0)).midY)),
+                     "Shared moves above the fork do not page")
+        let pan = try XCTUnwrap(table.gestureRecognizers?.first { $0.delegate === screen } as? UIPanGestureRecognizer)
+        let edgePop = try XCTUnwrap(nav.interactivePopGestureRecognizer)
+        let delegate: any UIGestureRecognizerDelegate = screen
+        XCTAssertTrue(delegate.gestureRecognizer?(pan, shouldBeRequiredToFailBy: edgePop) ?? false)
+        if #available(iOS 26.0, *), let contentPop = nav.interactiveContentPopGestureRecognizer {
+            XCTAssertTrue(delegate.gestureRecognizer?(pan, shouldBeRequiredToFailBy: contentPop) ?? false)
+        }
+        XCTAssertFalse(delegate.gestureRecognizer?(pan, shouldBeRequiredToFailBy: table.panGestureRecognizer) ?? false)
+        writeReviewImage(UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }, named: "EmptyBranchSwipeRegion")
+        screen.pageBranch(direction: -1, at: 2)
+        try await settle(game)
+        XCTAssertEqual(game.record?.branchID, record.id)
+        screen.pageBranch(direction: 1, at: 2)
+        try await settle(game)
+        XCTAssertEqual(game.record?.branchID, emptyBranch)
+        nav.popViewController(animated: false)
+        XCTAssertEqual(nav.viewControllers.count, 1, "Explicit navigation remains available")
     }
 
     func testBranchPagingKeepsSharedRowsAndScrollPosition() async throws {

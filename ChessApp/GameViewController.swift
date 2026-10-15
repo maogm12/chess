@@ -331,25 +331,43 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         branchPicker.menu = UIMenu(title: "Branches · swipe moves to switch", children: entries(parent: nil))
     }
 
-    private func branchPoint(at location: CGPoint) -> BranchPoint? {
-        guard let record = game.record,
-              let index = movesTable.indexPathForRow(at: location)?.row,
-              timeline.indices.contains(index) else { return nil }
-        switch timeline[index] {
-        case .fork(let point): return point
-        case .moves:
-            return record.branchPoints.last { $0.ply < timeline[index].lastPly }
+    func branchPoint(at location: CGPoint) -> BranchPoint? {
+        guard movesTable.bounds.contains(location) else { return nil }
+        // A fork owns the remaining history area, including empty continuation space.
+        // Search the rendered rows so nested forks and scroll offsets use the same boundary.
+        for index in timeline.indices.reversed() {
+            if case .fork(let point) = timeline[index],
+               movesTable.rectForRow(at: IndexPath(row: index, section: 0)).minY <= location.y {
+                return point
+            }
         }
+        return nil
+    }
+
+    func shouldPageHistory(at location: CGPoint, velocity: CGPoint) -> Bool {
+        abs(velocity.x) > abs(velocity.y) && branchPoint(at: location) != nil
     }
 
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         guard gestureRecognizer === historyPan else { return true }
-        let velocity = historyPan.velocity(in: movesTable)
         let location = historyPan.location(in: movesTable)
-        guard !game.busy, abs(velocity.x) > abs(velocity.y), branchPoint(at: location) != nil else { return false }
+        guard shouldPageHistory(at: location, velocity: historyPan.velocity(in: movesTable)) else { return false }
         // Keep the initial travel even if the scroll view resets the pan's translation.
         pagingStartX = location.x - historyPan.translation(in: movesTable).x
         return true
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard gestureRecognizer === historyPan, let navigationController,
+              navigationController.topViewController === self else { return false }
+        // Let the direction/region decision above arbitrate both system back gestures.
+        // Outside this table, or on a vertical/shared-row drag, historyPan fails normally.
+        if otherGestureRecognizer === navigationController.interactivePopGestureRecognizer { return true }
+        if #available(iOS 26.0, *) {
+            return otherGestureRecognizer === navigationController.interactiveContentPopGestureRecognizer
+        }
+        return false
     }
 
     @objc private func pannedHistory(_ gesture: UIPanGestureRecognizer) {
@@ -613,7 +631,7 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         case .fork: return 44
         case .moves(_, let white, let black):
             let rated = [white, black].compactMap { $0 }.contains { ratings.indices.contains($0) && ratings[$0] != nil }
-            return rated ? 54 : (timeline[indexPath.row].contains(ply: redoPly ?? -1) ? 40 : 32)
+            return rated ? 54 : 40
         }
     }
 }

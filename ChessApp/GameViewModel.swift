@@ -52,6 +52,17 @@ struct PracticeSettings: Codable, Equatable {
         get { rateMoves ?? false }
         set { rateMoves = newValue }
     }
+    static let strengthPresets: [(name: String, skill: Int)] = [
+        ("Beginner", 2), ("Casual", 6), ("Club", 11), ("Expert", 16), ("Full strength", 20)
+    ]
+    static func estimatedElo(for skill: Int) -> Int {
+        // Arasan options.h: Options::getRating; ArasanBridge maps skill to skill * 5.
+        // Engine estimate only, not a measured human rating for this device/time control.
+        1000 + min(20, max(0, skill)) * 5 * (3450 - 1000) / 100
+    }
+    var strengthDescription: String {
+        "\(difficulty) · ≈\(Self.estimatedElo(for: skill)) Elo"
+    }
     var difficulty: String {
         GameSettings(defaults: self).difficulty
     }

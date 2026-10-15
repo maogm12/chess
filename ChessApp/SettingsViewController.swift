@@ -16,7 +16,7 @@ final class SettingsViewController: GameObservingViewController, UITableViewData
         if scope == .currentGame {
             return [
                 Section(title: "Bot for this game",
-                        footer: "Saved with this game and shared by its branches. Bot changes apply to the next search. Hints always use full strength.",
+                        footer: "Saved with this game and shared by its branches. Bot changes apply to the next search. Elo is an engine estimate, not a measured human rating; device and thinking time affect play. Hints always use full strength.",
                         rows: [.strength, .slider, .thinking]),
                 Section(title: "Feedback for this game",
                         footer: "Rate future moves as Good, OK, or Bad. Analysis adds a short pause. Existing ratings stay saved.",
@@ -31,7 +31,7 @@ final class SettingsViewController: GameObservingViewController, UITableViewData
                     footer: "Used when starting a new game or creating a puzzle. Existing games keep their own settings.",
                     rows: [.side, .duration]),
             Section(title: "Default bot",
-                    footer: "For new games only. Change an existing game's bot in Game settings. Hints always use full strength.",
+                    footer: "For new games only. Change an existing game's bot in Game settings. Elo is an engine estimate, not a measured human rating; device and thinking time affect play. Hints always use full strength.",
                     rows: [.strength, .slider, .thinking]),
             Section(title: "Default practice feedback",
                     footer: "For new games only. Ratings estimate each move as Good, OK, or Bad and add a short analysis pause.",
@@ -118,7 +118,11 @@ final class SettingsViewController: GameObservingViewController, UITableViewData
             })
         case .strength:
             cell.textLabel?.text = "Strength"
-            cell.detailTextLabel?.text = "\(preferences.difficulty) · \(preferences.skill)/20"
+            let button = picker(title: preferences.strengthDescription, label: "Bot strength", options: [])
+            button.menu = botStrengthMenu(settings: preferences) { [weak self] skill in
+                self?.change { $0.skill = skill }
+            }
+            cell.accessoryView = button
         case .slider:
             let slider = UISlider()
             slider.minimumValue = 0

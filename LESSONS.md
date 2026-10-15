@@ -119,6 +119,26 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   is exercised via the UIKit delegate callback, not an automated screen tap;
   no physical device or full animation recording was tested.
 
+## Show exact slider strength when a menu offers presets
+
+- Date and symptom: 2026-10-14, issue #10. Bot strength menus had no checkmark
+  at the default level 5 because their shortcuts use levels 2/6/11/16/20.
+  Settings and game menus also omitted the engine's estimated Elo scale.
+- Cause: Menu selection compared only exact preset values and shared no builder
+  with Settings' strength display.
+- Prevention: Share the menu builder, keep exact slider values, and add one
+  selected current-level entry when the current value is between presets.
+  Mark Elo as approximate and derive it from bundled Arasan's
+  `Options::getRating` and the app bridge's skill × 5 mapping. Do not present
+  the scale as measured human performance at this device/time control.
+- Evidence: `botStrengthMenu` in `UIKitSupport.swift`, `PracticeSettings` in
+  `GameViewModel.swift`, `ArasanBridge.mm` search strength mapping and vendored
+  `src/options.h` rating scale (1000–3450).
+- Verification: `testStrengthMenusDescribeEloAndExactCurrentLevel` checks all
+  21 levels for exactly one selected entry, preset Elo values, both menus and
+  preservation through settings encoding. Native simulator captures show the
+  actual opened menu; no empirical human rating calibration was performed.
+
 ## Adding or updating a lesson
 
 Use a short descriptive heading and record:
@@ -161,6 +181,11 @@ this file is for reusable project knowledge.
   another is active, persistence, legacy migration and branch timer preservation.
   Existing search invalidation coverage also changes game settings during search.
   Settings and Game settings screenshots were visually inspected.
+  Integrating PR #15's Elo menu required passing the scoped preferences through
+  the shared menu builder and routing selection through the scoped update method;
+  binding it to `game.settings` would restore the original cross-game mutation.
+  After merging PRs #13/#14/#15, all 41 tests passed, including exact strength
+  selection at every level, stable history heights and empty-branch gestures.
 
 ## Renaming the app identifier creates a new data container
 
@@ -186,3 +211,36 @@ this file is for reusable project knowledge.
   `CFBundleIdentifier com.maogm12.forkchess` and
   `CFBundleDisplayName ForkChess`, and the CI screenshot of the home screen
   shows the ForkChess wordmark.
+
+## Give branch swipes the whole continuation region
+
+- Date and symptom: 2026-10-14, issue #12. Rightward drags in an empty branch
+  continuation could leave the game instead of switching branches.
+- Cause: `GameViewController.branchPoint(at:)` required a populated table row.
+  It returned nil for blank space below the fork; the horizontal history pan
+  also had no precedence over navigation's interactive back gestures.
+- Prevention: Resolve ownership from rendered fork boundaries, including blank
+  space and scroll offsets. Let both edge and iOS 26 content-pop gestures wait
+  for the history pan's direction/region decision using its gesture delegate.
+  Do not replace UIKit's internal navigation delegate or disable back globally.
+  Vertical drags and shared rows remain outside horizontal paging; actual
+  switching still observes `pageBranch` readiness/busy guards.
+- Verification: `testEmptyBranchContinuationOwnsHistorySwipes` covers an empty
+  two-line fork, horizontal/vertical ownership, shared rows, both system pop
+  recognizers, branch round trips and explicit navigation. Existing nested
+  branch, partial drag and scroll-position tests cover populated continuations.
+
+## Reserve redo space before selecting a history move
+
+- Date and symptom: 2026-10-14, issue #11. Selecting a human move grew its
+  history row from 32 to 40 points and shifted every following row.
+- Cause: `GameViewController.tableView(_:heightForRowAt:)` based unrated row
+  height on `redoPly`, although selection should only reveal an inline action.
+- Prevention: Reserve the 40-point redo height for every unrated move row.
+  Keep rated rows at 54 points for their second line, independently of selection.
+  Preserve the human-only redo condition in the cell configuration.
+- Verification: `testHistoryRowsKeepRedoHeightAcrossSelection` compares complete
+  row frames across human/bot selection and returning to the latest position,
+  checks redo visibility, and checks rated rows separately. UIWindow captures
+  document the unselected and selected layouts; frame assertions establish
+  layout stability that still images alone cannot prove.
