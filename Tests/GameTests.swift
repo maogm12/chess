@@ -1317,6 +1317,66 @@ final class GameTests: XCTestCase {
         XCTAssertEqual(game.active?.branchID, newBranch)
     }
 
+    func testEmptyBranchContinuationOwnsHistorySwipes() async throws {
+        let (game, _) = try await makeGame()
+        var record = SavedGame(playerWhite: true)
+        record.moves = ["e2e4", "e7e5", "g1f3", "b8c6"]
+        record.notation = ["e4", "e5", "Nf3", "Nc6"]
+        record.fork(at: 2, seconds: 600)
+        let fixture = LocalLibrary(settings: game.settings, games: [record], activeID: record.id)
+        try JSONEncoder().encode(fixture).write(to: FileManager.default.temporaryDirectory.appendingPathComponent("EmptyBranchLibrary.json"))
+        let emptyBranch = record.branchID
+        game.review(record)
+        try await settle(game)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = try XCTUnwrap(scene.windows.first)
+        let original = window.rootViewController
+        defer { window.rootViewController = original }
+        let screen = GameViewController(game: game)
+        let nav = ChessNavigationController(rootViewController: UIViewController())
+        window.rootViewController = nav
+        nav.pushViewController(screen, animated: false)
+        window.makeKeyAndVisible()
+        window.layoutIfNeeded()
+        screen.updateView()
+        screen.view.layoutIfNeeded()
+        let table = try XCTUnwrap(descendants(of: screen.view).first {
+            $0.accessibilityIdentifier == "move-timeline"
+        } as? UITableView)
+        table.layoutIfNeeded()
+        let forkRow = IndexPath(row: table.numberOfRows(inSection: 0) - 1, section: 0)
+        let blank = CGPoint(x: table.bounds.midX, y: table.rectForRow(at: forkRow).maxY + 20)
+        XCTAssertTrue(table.bounds.contains(blank))
+        XCTAssertNil(table.indexPathForRow(at: blank), "Reproduce the blank area with no move cell")
+        XCTAssertEqual(screen.branchPoint(at: blank)?.ply, 2)
+        XCTAssertTrue(screen.shouldPageHistory(at: blank, velocity: CGPoint(x: 200, y: 20)))
+        XCTAssertTrue(screen.shouldPageHistory(at: blank, velocity: CGPoint(x: -200, y: 20)))
+        XCTAssertFalse(screen.shouldPageHistory(at: blank, velocity: CGPoint(x: 20, y: 200)),
+                       "Vertical history scrolling stays native")
+        XCTAssertNil(screen.branchPoint(at: CGPoint(x: blank.x, y: table.bounds.maxY + 1)))
+        XCTAssertNil(screen.branchPoint(at: CGPoint(x: blank.x, y: table.rectForRow(at: IndexPath(row: 0, section: 0)).midY)),
+                     "Shared moves above the fork do not page")
+        let pan = try XCTUnwrap(table.gestureRecognizers?.first { $0.delegate === screen } as? UIPanGestureRecognizer)
+        let edgePop = try XCTUnwrap(nav.interactivePopGestureRecognizer)
+        let delegate: any UIGestureRecognizerDelegate = screen
+        XCTAssertTrue(delegate.gestureRecognizer?(pan, shouldBeRequiredToFailBy: edgePop) ?? false)
+        if #available(iOS 26.0, *), let contentPop = nav.interactiveContentPopGestureRecognizer {
+            XCTAssertTrue(delegate.gestureRecognizer?(pan, shouldBeRequiredToFailBy: contentPop) ?? false)
+        }
+        XCTAssertFalse(delegate.gestureRecognizer?(pan, shouldBeRequiredToFailBy: table.panGestureRecognizer) ?? false)
+        writeReviewImage(UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }, named: "EmptyBranchSwipeRegion")
+        screen.pageBranch(direction: -1, at: 2)
+        try await settle(game)
+        XCTAssertEqual(game.record?.branchID, record.id)
+        screen.pageBranch(direction: 1, at: 2)
+        try await settle(game)
+        XCTAssertEqual(game.record?.branchID, emptyBranch)
+        nav.popViewController(animated: false)
+        XCTAssertEqual(nav.viewControllers.count, 1, "Explicit navigation remains available")
+    }
+
     func testBranchPagingKeepsSharedRowsAndScrollPosition() async throws {
         let (game, _) = try await makeGame()
         game.settings.moveRatingsEnabled = true
