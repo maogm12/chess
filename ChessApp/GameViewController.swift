@@ -618,7 +618,7 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         case .fork: return 44
         case .moves(_, let white, let black):
             let rated = [white, black].compactMap { $0 }.contains { ratings.indices.contains($0) && ratings[$0] != nil }
-            return rated ? 54 : (timeline[indexPath.row].contains(ply: redoPly ?? -1) ? 40 : 32)
+            return rated ? 54 : 40
         }
     }
 }
