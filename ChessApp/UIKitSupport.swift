@@ -108,10 +108,14 @@ class GameObservingViewController: UIViewController {
         present(ChessNavigationController(rootViewController: SettingsViewController(game: game, scope: scope)), animated: true)
     }
 
-    func share(_ record: SavedGame, from source: UIView) {
+    func share(_ record: SavedGame, from source: UIView, barButtonItem: UIBarButtonItem? = nil) {
         let controller = UIActivityViewController(activityItems: [game.pgn(for: record)], applicationActivities: nil)
-        controller.popoverPresentationController?.sourceView = source
-        controller.popoverPresentationController?.sourceRect = source.bounds
+        if let barButtonItem {
+            controller.popoverPresentationController?.barButtonItem = barButtonItem
+        } else {
+            controller.popoverPresentationController?.sourceView = source
+            controller.popoverPresentationController?.sourceRect = source.bounds
+        }
         present(controller, animated: true)
     }
 

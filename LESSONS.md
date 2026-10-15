@@ -174,6 +174,10 @@ this file is for reusable project knowledge.
   defaults before those defaults can change. Use that game's configuration for
   searches, feedback and new-fork duration. Keep board appearance and haptics global.
   A search or rating retains the settings captured when its move began.
+  When moving the board's settings entry into a direct toolbar button (issue #16),
+  keep `presentSettings(scope: .currentGame)` rather than the global default.
+  Toolbar sharing should use a `UIBarButtonItem` popover anchor; list sharing
+  continues to anchor to its source view.
 - Evidence: `GameViewModel.updateGameSettings`, `prepareGameSettings`,
   `replyIfNeeded`, `rateMove`, and the scope in `SettingsViewController`.
 - Verification: All 38 integration tests passed on iPhone 17 Pro / iOS 26.5.
@@ -184,6 +188,9 @@ this file is for reusable project knowledge.
   Integrating PR #15's Elo menu required passing the scoped preferences through
   the shared menu builder and routing selection through the scoped update method;
   binding it to `game.settings` would restore the original cross-game mutation.
+  `testGameToolbarOpensScopedSettingsAndAnchoredShareDirectly` additionally
+  exercises the direct settings action, edits its slider without changing defaults,
+  and checks the share controller's bar-item anchor and unchanged game/orientation.
   After merging PRs #13/#14/#15, all 41 tests passed, including exact strength
   selection at every level, stable history heights and empty-branch gestures.
 
