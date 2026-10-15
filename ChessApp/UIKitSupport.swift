@@ -288,10 +288,6 @@ extension SavedGame {
         let outcome = result == (playerWhite ? "1-0" : "0-1") ? "You won" : "You lost"
         return reason.isEmpty ? outcome : "\(reason) · \(outcome)"
     }
-    var homeDetail: String {
-        "\(date.formatted(.dateTime.month(.abbreviated).day())) · \(moves.count) moves · \(playerWhite ? "White" : "Black")" +
-            (branchCount > 1 ? " · \(branchCount) branches" : "")
-    }
 }
 
 final class KingArtworkView: ChessPieceArtworkView {

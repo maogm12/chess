@@ -329,25 +329,10 @@ final class GameViewModel: ObservableObject {
             return BoardPiece(id: index, kind: kind, isWhite: kind.isUppercase)
         }
     }
-    var status: String {
-        if !ready { return "Preparing board…" }
-        if busy { return "Loading position…" }
-        if reviewing { return "" }
-        if isRating { return "Rating move…" }
-        if gameOver { return (active?.reason ?? "Game over") + " · " + (active?.result ?? "") }
-        if isHinting { return "Finding a hint…" }
-        if isThinking { return "Bot is thinking…" }
-        let side = whiteToMove ? "White" : "Black"
-        return (snapshot?.inCheck == true ? "Check · " : "") + side + " to move"
-    }
     var lastMoveSquares: Set<Int> {
         let line = reviewing ? Array((reviewGame?.moves ?? []).prefix(reviewPly)) : (active?.moves ?? [])
         guard let move = line.last else { return [] }
         return [squareIndex(String(move.prefix(2))), squareIndex(String(move.dropFirst(2).prefix(2)))]
-    }
-    var lastMoveUCI: String? {
-        let line = reviewing ? Array((reviewGame?.moves ?? []).prefix(reviewPly)) : (active?.moves ?? [])
-        return line.last
     }
     var legalTargets: Set<Int> {
         guard let selectedSquare, settings.showLegalMoves else { return [] }
