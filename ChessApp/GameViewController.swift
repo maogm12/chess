@@ -125,7 +125,7 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         gameSettingsItem.accessibilityIdentifier = "game-settings"
         shareItem.accessibilityLabel = "Share PGN"
         shareItem.accessibilityIdentifier = "share-game"
-        navigationItem.rightBarButtonItems = [shareItem, gameSettingsItem]
+        navigationItem.rightBarButtonItems = [gameSettingsItem, shareItem]
         updateView()
     }
 
