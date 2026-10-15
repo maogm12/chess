@@ -119,6 +119,26 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   is exercised via the UIKit delegate callback, not an automated screen tap;
   no physical device or full animation recording was tested.
 
+## Show exact slider strength when a menu offers presets
+
+- Date and symptom: 2026-10-14, issue #10. Bot strength menus had no checkmark
+  at the default level 5 because their shortcuts use levels 2/6/11/16/20.
+  Settings and game menus also omitted the engine's estimated Elo scale.
+- Cause: Menu selection compared only exact preset values and shared no builder
+  with Settings' strength display.
+- Prevention: Share the menu builder, keep exact slider values, and add one
+  selected current-level entry when the current value is between presets.
+  Mark Elo as approximate and derive it from bundled Arasan's
+  `Options::getRating` and the app bridge's skill × 5 mapping. Do not present
+  the scale as measured human performance at this device/time control.
+- Evidence: `botStrengthMenu` in `UIKitSupport.swift`, `PracticeSettings` in
+  `GameViewModel.swift`, `ArasanBridge.mm` search strength mapping and vendored
+  `src/options.h` rating scale (1000–3450).
+- Verification: `testStrengthMenusDescribeEloAndExactCurrentLevel` checks all
+  21 levels for exactly one selected entry, preset Elo values, both menus and
+  preservation through settings encoding. Native simulator captures show the
+  actual opened menu; no empirical human rating calibration was performed.
+
 ## Adding or updating a lesson
 
 Use a short descriptive heading and record:
@@ -155,23 +175,3 @@ this file is for reusable project knowledge.
   `CFBundleIdentifier com.maogm12.forkchess` and
   `CFBundleDisplayName ForkChess`, and the CI screenshot of the home screen
   shows the ForkChess wordmark.
-
-## Show exact slider strength when a menu offers presets
-
-- Date and symptom: 2026-10-14, issue #10. Bot strength menus had no checkmark
-  at the default level 5 because their shortcuts use levels 2/6/11/16/20.
-  Settings and game menus also omitted the engine's estimated Elo scale.
-- Cause: Menu selection compared only exact preset values and shared no builder
-  with Settings' strength display.
-- Prevention: Share the menu builder, keep exact slider values, and add one
-  selected current-level entry when the current value is between presets.
-  Mark Elo as approximate and derive it from bundled Arasan's
-  `Options::getRating` and the app bridge's skill × 5 mapping. Do not present
-  the scale as measured human performance at this device/time control.
-- Evidence: `botStrengthMenu` in `UIKitSupport.swift`, `PracticeSettings` in
-  `GameViewModel.swift`, `ArasanBridge.mm` search strength mapping and vendored
-  `src/options.h` rating scale (1000–3450).
-- Verification: `testStrengthMenusDescribeEloAndExactCurrentLevel` checks all
-  21 levels for exactly one selected entry, preset Elo values, both menus and
-  preservation through settings encoding. Native simulator captures show the
-  actual opened menu; no empirical human rating calibration was performed.
