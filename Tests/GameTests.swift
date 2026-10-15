@@ -705,7 +705,12 @@ final class GameTests: XCTestCase {
                     let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
                         window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
                     }
-                    writeReviewImage(image, named: "\(name)-\(style == .dark ? "Dark" : "Light")")
+                    let imageName = "\(name)-\(style == .dark ? "Dark" : "Light")"
+                    writeReviewImage(image, named: imageName)
+                    let attachment = XCTAttachment(image: image)
+                    attachment.name = imageName
+                    attachment.lifetime = .keepAlways
+                    add(attachment)
                 }
             }
         }
