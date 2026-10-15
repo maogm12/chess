@@ -55,7 +55,7 @@ no signing identity or credentials are committed here.
   feedback once when haptics are enabled; reopening, replay, and flipping do not repeat it.
   The game screen has no status/difficulty text row above the board.
 - Full-strength hints with board highlights and algebraic notation.
-- Undo a turn, resign, flip the board, and start another game.
+- Undo a turn, resign, and start another game.
   Undo preserves the previous continuation as a branch.
 - Piece movement animates in both directions, including undo and castling.
   Captured-piece trays follow each side of the board and restore during undo/replay.
@@ -87,7 +87,9 @@ no signing identity or credentials are committed here.
   Each branch has one parent; identical positions never merge. Branches retain their own
   moves, ratings, outcome, and timer, and one game occupies one history entry.
   PGN sharing exports the selected line.
-- PGN sharing through the system share sheet, only when requested.
+- Direct **Game settings** and **Share PGN** buttons at the game screen's top right.
+  Game settings apply to the current game; PGN sharing opens the system share sheet
+  for the selected history line, anchored to the Share button on iPad.
 - Persistent settings for side, strength, time, colors, coordinates, legal-move markers, and haptics.
 - Settings have explicit scopes. Home Settings contains app-wide board colors,
   coordinates, legal-move markers and haptics, plus defaults for new games and
