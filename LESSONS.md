@@ -139,6 +139,27 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   preservation through settings encoding. Native simulator captures show the
   actual opened menu; no empirical human rating calibration was performed.
 
+## Verify all consumers before removing old screen presentation helpers
+
+- Date and problem: On 2026-10-15, maintenance found `GameViewModel.status`,
+  `GameViewModel.lastMoveUCI`, and `SavedGame.homeDetail` had no consumers after
+  earlier interface changes. The removed status row and inline home history
+  had left their derived presentation code behind.
+- Cause: Screen changes removed callers without removing unused computed
+  properties. Their old names alone did not establish whether they were dead.
+- Prevention: Search app sources and tests for every candidate before removal.
+  Preserve helpers with other consumers: `SavedGame.homeOutcome` is still used
+  by `PuzzleTile.apply`, and `lastMoveSquares` still drives board highlights.
+  Removing unused display properties must not change Codable storage or the
+  state flags used by engine request invalidation.
+- Evidence: `ChessApp/GameViewModel.swift`, the `SavedGame` extension in
+  `ChessApp/UIKitSupport.swift`, and `ChessApp/PuzzleViewController.swift`.
+- Verification: The standalone engine suite passed (perft, legality, special
+  moves, results, draws and 24 engine plies). The simulator build and all 46
+  existing iOS integration tests passed with zero failures/skips on iPhone 17
+  Pro / iOS 26.5, including Puzzle tiles, history, highlights and search
+  invalidation. No new test was needed for removing unreferenced properties.
+
 ## Adding or updating a lesson
 
 Use a short descriptive heading and record:
