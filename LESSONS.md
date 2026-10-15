@@ -156,6 +156,24 @@ this file is for reusable project knowledge.
   `CFBundleDisplayName ForkChess`, and the CI screenshot of the home screen
   shows the ForkChess wordmark.
 
+## Give branch swipes the whole continuation region
+
+- Date and symptom: 2026-10-14, issue #12. Rightward drags in an empty branch
+  continuation could leave the game instead of switching branches.
+- Cause: `GameViewController.branchPoint(at:)` required a populated table row.
+  It returned nil for blank space below the fork; the horizontal history pan
+  also had no precedence over navigation's interactive back gestures.
+- Prevention: Resolve ownership from rendered fork boundaries, including blank
+  space and scroll offsets. Let both edge and iOS 26 content-pop gestures wait
+  for the history pan's direction/region decision using its gesture delegate.
+  Do not replace UIKit's internal navigation delegate or disable back globally.
+  Vertical drags and shared rows remain outside horizontal paging; actual
+  switching still observes `pageBranch` readiness/busy guards.
+- Verification: `testEmptyBranchContinuationOwnsHistorySwipes` covers an empty
+  two-line fork, horizontal/vertical ownership, shared rows, both system pop
+  recognizers, branch round trips and explicit navigation. Existing nested
+  branch, partial drag and scroll-position tests cover populated continuations.
+
 ## Reserve redo space before selecting a history move
 
 - Date and symptom: 2026-10-14, issue #11. Selecting a human move grew its
