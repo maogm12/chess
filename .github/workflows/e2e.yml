@@ -1,0 +1,47 @@
+name: End-to-end tests
+
+# Expensive black-box UI tests run only for PRs, never on push or a schedule.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+
+jobs:
+  e2e:
+    name: E2E (${{ matrix.device }})
+    runs-on: macos-26
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        device: [iPhone, iPad]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check runner isolation and failure handling
+        run: python3 Tests/test-e2e-runner.py
+      - name: Run end-to-end tests
+        run: bash Tests/run-e2e-tests.sh build/e2e "${{ matrix.device }}"
+      - name: Export screenshots and failure evidence
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ -d build/e2e/EndToEnd.xcresult ]; then
+            xcrun xcresulttool export attachments \
+              --path build/e2e/EndToEnd.xcresult \
+              --output-path build/e2e/attachments
+          fi
+      - name: Upload results, logs, and screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-${{ matrix.device }}-${{ github.run_attempt }}
+          path: build/e2e/
+          retention-days: 14

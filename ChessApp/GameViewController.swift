@@ -88,6 +88,7 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         hintLabel.layer.cornerRadius = 10
         hintLabel.clipsToBounds = true
         hintLabel.textAlignment = .center
+        hintLabel.accessibilityIdentifier = "hint-description"
         movesTable.dataSource = self
         movesTable.delegate = self
         movesTable.separatorColor = ForkChessTheme.line

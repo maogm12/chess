@@ -293,3 +293,20 @@ this file is for reusable project knowledge.
   rendered pixels against the expected source-over color and alpha in both
   appearances. It passed in the full 45-test suite; the corrected dark game
   screenshot shows the board beneath the yellow highlight.
+
+## Distinguish compiling UI tests from running them
+
+- Date and symptom: On 2026-10-16, the E2E test target compiled successfully on
+  Xcode 27.1, but `test-without-building` could not find any simulator destination.
+- Cause: Xcode required CoreSimulator 1174.9.2 while the installed service was
+  1171.7.0. Xcode explicitly disabled simulator device support. A successful
+  `build-for-testing` for a generic simulator destination did not exercise UI tests.
+- Prevention: Report compilation and execution separately. Treat a missing
+  simulator destination as a toolchain failure, and require an actual XCTest run
+  before claiming E2E behavior passes. Keep CI's Xcode installation consistent with
+  its simulator tools; do not change app behavior to mask the environment failure.
+- Evidence: `Tests/run-e2e-tests.sh`, the `ForkChessE2E` scheme, and the local
+  `build/e2e-local/build.log` / `test.log` diagnostics.
+- Verification: The app and UI-test runner compiled; simulator execution was
+  blocked by the stated version mismatch. The standalone Arasan regression suite
+  passed. UI gestures and system sheets were not runtime-verified in this environment.

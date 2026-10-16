@@ -190,6 +190,69 @@ bash Tests/run-ios-tests.sh
 Results go to `build/ci`. To repeat a local run, pass a fresh output directory,
 for example `bash Tests/run-ios-tests.sh build/ci-next`.
 
+### End-to-end PR checks
+
+The separate **End-to-end tests** workflow runs **only on pull requests**. It does
+not run on pushes, a schedule, ordinary builds, or Product → Test with the default
+**ForkChess** scheme. Existing engine and integration checks keep their current
+triggers. The **ForkChessE2E** scheme contains the independent
+`ForkChessUITests` UI-testing target.
+
+The workflow runs the full suite on both iPhone and iPad in separate jobs. Each
+job creates its own simulator using the latest available iOS runtime, runs tests
+serially without automatic retries, and removes that simulator on exit. Results,
+logs, failure accessibility hierarchies, and named screenshots are retained for
+14 days, including when a test fails.
+
+The UI tests launch the real app and operate through XCTest taps, swipes, native
+menus, popovers, sheets, and background/relaunch transitions. They use the bundled
+Arasan engine, automatic saving, and normal navigation. Bot replies are checked
+for completion rather than a particular move. Bounded predicate waits synchronize
+with visible state; explicit background/off-screen intervals test timer pausing.
+
+| Pages / features | End-to-end coverage |
+| --- | --- |
+| Home, History, Puzzle | Empty states, side selection, counts, new games, navigation stacks, saved puzzle entry from both lists |
+| Game board | White/Black turns and orientation, legal selection/deselection, illegal input, hints, undo, resignation cancel/confirm, new game |
+| Puzzle editor and piece picker | Both add entry points, White/Black setup, disabled pawn/king choices, missing kings, eraser, clear, save, editor replacement, playable saved positions |
+| History and branching | Replay, human-only redo, stable row height, alternative and nested lines, real horizontal swipes including blank continuation, page dots, branch menu, Latest, relaunch persistence |
+| Settings and Game settings | Side, durations, strength presets, exact slider/Elo, thinking time, ratings, all board/interaction controls, default/game isolation, another saved game, branch timer isolation, persistence |
+| License | About navigation and bundled MIT license text |
+| Special moves and captures | Both castling directions, en passant, captured tray restoration, all four promotions for both colors, promotion capture preview, real outside-tap cancellation, promotion persistence |
+| Check and endings | Check/replay markers, human checkmate and redo, stalemate, insufficient material, 50-move and threefold draws |
+| Timer and asynchronous work | Running countdown, background/off-screen pause, saved time restoration, expiry without ending play, leaving during bot and hint searches |
+| Sharing and deletion | Real system share sheet and copied PGN contents from game/history/puzzle, selected-line and FEN exports, delete cancel/confirm, persisted deletion |
+| Compatibility and layout | Legacy manual-play JSON, light/dark screenshots across pages and pickers, portrait/landscape board and replay controls on iPhone/iPad |
+
+Fixtures describe saved positions through the library's JSON format; they do not
+link app code into the UI-test runner or replace the engine. In Debug builds only,
+`SceneDelegate` recognizes `FORKCHESS_UI_TEST_ID` (a UUID) and
+`FORKCHESS_UI_TEST_LIBRARY` (initial library JSON). Each test writes into a distinct
+temporary library; relaunches reuse that library without reapplying the fixture.
+Normal launches and Release builds use the normal Application Support library.
+
+Screenshots are evidence for review, not automatic pixel comparisons. Exact
+geometry, live system appearance changes, haptic callbacks, engine evaluation
+thresholds, and older library-directory migration also retain their more precise
+coverage in `Tests/GameTests.swift` and `Tests/EngineTests.mm`.
+
+Run the expensive suite locally only when explicitly needed, using the separate
+scheme or script on an ARM64 Mac with a matching Xcode/CoreSimulator installation:
+
+```sh
+bash Tests/run-e2e-tests.sh build/e2e-phone iPhone
+bash Tests/run-e2e-tests.sh build/e2e-tablet iPad
+```
+
+Use a fresh output directory for each run. Each invocation writes
+`EndToEnd.xcresult` and `e2e.log` in that directory. To export screenshots:
+
+```sh
+xcrun xcresulttool export attachments \
+  --path build/e2e-phone/EndToEnd.xcresult \
+  --output-path build/e2e-phone/attachments
+```
+
 ## Structure
 
 - `ChessApp.swift`: UIKit application/scene delegates and background lifecycle.
