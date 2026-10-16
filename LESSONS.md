@@ -307,6 +307,9 @@ this file is for reusable project knowledge.
   its simulator tools; do not change app behavior to mask the environment failure.
 - Evidence: `Tests/run-e2e-tests.sh`, the `ForkChessE2E` scheme, and the local
   `build/e2e-local/build.log` / `test.log` diagnostics.
-- Verification: The app and UI-test runner compiled; simulator execution was
-  blocked by the stated version mismatch. The standalone Arasan regression suite
-  passed. UI gestures and system sheets were not runtime-verified in this environment.
+- Verification: The app, UI-test runner, and default integration-test target
+  compiled; simulator execution was blocked by the stated version mismatch.
+  The Release build passed, and binary inspection confirmed that UI-fixture
+  launch keys are excluded. The standalone Arasan regression suite and six runner
+  isolation/failure tests passed. UI gestures and system sheets were not
+  runtime-verified in this environment.

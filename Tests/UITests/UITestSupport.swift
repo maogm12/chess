@@ -94,6 +94,7 @@ class ChessUITestCase: XCTestCase {
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         if let appearance { app.launchArguments += ["-AppleInterfaceStyle", appearance] }
         app.launch()
+        app.launchEnvironment.removeValue(forKey: "FORKCHESS_UI_TEST_LIBRARY")
         waitEnabled(app.buttons["Start new game"])
     }
 

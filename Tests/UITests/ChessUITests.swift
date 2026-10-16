@@ -590,7 +590,8 @@ final class ChessUITests: ChessUITestCase {
         wait({ self.timerSeconds() < before }, "running countdown")
         let beforeBackground = timerSeconds()
         XCUIDevice.shared.press(.home)
-        XCTAssertTrue(app.wait(for: .runningBackground, timeout: 5))
+        wait({ self.app.state == .runningBackground || self.app.state == .runningBackgroundSuspended },
+             "app backgrounded", timeout: 5)
         // A bounded background interval establishes that the countdown is paused.
         let background = XCTestExpectation(description: "App stays in the background")
         background.isInverted = true
