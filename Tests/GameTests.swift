@@ -282,6 +282,60 @@ final class GameTests: XCTestCase {
         XCTAssertEqual(disk.games.count, 0)
     }
 
+    func testPGNExportUsesSetupTurnAndFullmoveNumber() async throws {
+        let (game, _) = try await makeGame()
+        let cases: [(fen: String, moves: [String], movetext: String)] = [
+            (GameViewModel.startFEN, ["e2e4", "g8f6"], "1. e4 Nf6 *"),
+            ("7k/8/8/8/8/8/8/KR6 w - - 0 23",
+             ["b1b2", "h8h7", "b2b3", "h7h6"], "23. Rb2 Kh7 24. Rb3 Kh6 *"),
+            ("7k/8/8/8/8/8/8/KR6 b - - 0 23",
+             ["h8h7", "b1b2", "h7h6", "b2b3"], "23... Kh7 24. Rb2 Kh6 25. Rb3 *"),
+            ("7k/8/8/8/8/8/8/KR6 b - - 0 1", ["h8h7"], "1... Kh7 *"),
+            ("7k/8/8/8/8/8/8/KR6 b - - 0 23", [], "*")
+        ]
+        for sample in cases {
+            var record = SavedGame(playerWhite: true)
+            record.baseFEN = sample.fen
+            record.moves = sample.moves
+            game.review(record)
+            try await settle(game)
+            record.notation = game.moves
+            let beforeExport = record
+            let pgn = game.pgn(for: record)
+            XCTAssertTrue(pgn.hasSuffix("\n\n" + sample.movetext), pgn)
+            if sample.fen != GameViewModel.startFEN {
+                XCTAssertTrue(pgn.contains("[SetUp \"1\"]\n[FEN \"\(sample.fen)\"]"))
+            }
+            XCTAssertEqual(record, beforeExport, "Sharing must not change the saved line")
+        }
+    }
+
+    func testPGNExportPreservesSetupNumberingAcrossSavedBranches() async throws {
+        let (game, _) = try await makeGame()
+        var record = SavedGame(playerWhite: false, isPuzzle: true)
+        record.baseFEN = "7k/8/8/8/8/8/8/KR6 b - - 0 23"
+        record.moves = ["h8h7", "b1b2", "h7h6", "b2b3"]
+        game.review(record)
+        try await settle(game)
+        record.notation = game.moves
+        let mainID = record.branchID
+        record.fork(at: 1, seconds: 600)
+        let alternateID = record.branchID
+        record.moves += ["b1c1", "h7h6"]
+        game.review(record)
+        try await settle(game)
+        record.notation = game.moves
+
+        record.syncSelectedBranch()
+        let data = try JSONEncoder().encode(record)
+        var restored = try JSONDecoder().decode(SavedGame.self, from: data)
+        XCTAssertTrue(game.pgn(for: restored).hasSuffix("\n\n23... Kh7 24. Rc1 Kh6 *"))
+        restored.selectBranch(mainID)
+        XCTAssertTrue(game.pgn(for: restored).hasSuffix("\n\n23... Kh7 24. Rb2 Kh6 25. Rb3 *"))
+        restored.selectBranch(alternateID)
+        XCTAssertTrue(game.pgn(for: restored).hasSuffix("\n\n23... Kh7 24. Rc1 Kh6 *"))
+    }
+
     func testNewGameDiscardsOldSearchAndResumeWorks() async throws {
         let (game, _) = try await makeGame()
         game.newGame()
