@@ -180,8 +180,9 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   Full simulator execution is currently blocked by Xcode 27.1 requiring
   CoreSimulator 1174.9.2 while 1171.7 is installed.
   Two XCTest regressions cover normal starts, both setup colors, later move
-  numbers, empty games, and selected branches after persistence; they must
-  pass in the full iOS suite before this maintenance change is published.
+  numbers, empty games, and selected branches after persistence. Publish the
+  PR with this local limitation documented, and use the full CI suites to
+  verify runtime behavior before reporting regression success.
 
 ## Adding or updating a lesson
 
