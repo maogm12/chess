@@ -17,6 +17,7 @@ final class HistoryViewController: GameObservingViewController, UITableViewDataS
         title = "History"
         navigationItem.backButtonTitle = "History"
         table.backgroundColor = .clear
+        table.accessibilityIdentifier = "saved-games"
         table.dataSource = self
         table.delegate = self
         table.rowHeight = UITableView.automaticDimension

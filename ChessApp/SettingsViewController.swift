@@ -77,7 +77,9 @@ final class SettingsViewController: GameObservingViewController, UITableViewData
         navigationItem.rightBarButtonItem = UIBarButtonItem(systemItem: .done, primaryAction: UIAction { [weak self] _ in
             self?.dismiss(animated: true)
         })
+        navigationItem.rightBarButtonItem?.accessibilityIdentifier = "settings-done"
         table.backgroundColor = .clear
+        table.accessibilityIdentifier = "settings-list"
         table.dataSource = self
         table.delegate = self
         table.rowHeight = UITableView.automaticDimension
@@ -231,6 +233,7 @@ private final class LicenseViewController: UIViewController {
         view.backgroundColor = ForkChessTheme.background
         let text = UITextView()
         text.isEditable = false
+        text.accessibilityIdentifier = "engine-license"
         text.backgroundColor = .clear
         text.textColor = ForkChessTheme.navy
         text.font = .monospacedSystemFont(ofSize: 12, weight: .regular)

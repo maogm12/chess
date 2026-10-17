@@ -16,6 +16,7 @@ final class PuzzleViewController: GameObservingViewController, UICollectionViewD
             self?.addPuzzle()
         })
         navigationItem.rightBarButtonItem?.accessibilityLabel = "Add puzzle"
+        navigationItem.rightBarButtonItem?.accessibilityIdentifier = "add-puzzle"
         grid.backgroundColor = .clear
         grid.alwaysBounceVertical = true
         grid.dataSource = self

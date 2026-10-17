@@ -52,6 +52,31 @@ claiming a newly investigated incident. Add future lessons only with evidence.
 - Verification: The initial cloud run reproduced the failure. The updated
   script passed the full engine suite under Bash 3.2.57 locally and in the
   engine job of GitHub Actions run `38622610066` (commit `56a20d7`).
+  On 2026-10-17, an unmatched apostrophe in a Python heredoc comment inside
+  a quoted command substitution also broke Bash 3.2 parsing in the E2E runner.
+  Removing that apostrophe restored parsing. Run syntax and subprocess checks
+  with `/bin/bash`, including after changes to embedded Python comments.
+
+## Retry stalled simulator status reads within the migration deadline
+
+- Date and symptom: On 2026-10-17, PR #22's iPhone E2E job booted the simulator,
+  then failed before XCTest because one `simctl bootstatus <device> -d` call
+  exceeded 30 seconds.
+- Cause: `Tests/run-e2e-tests.sh` treated a single `subprocess.TimeoutExpired`
+  as final even though its overall migration deadline still had time remaining.
+  CoreSimulator can stall a status query while finishing the boot, so one slow
+  read does not establish that a migration plugin failed.
+- Prevention: Preserve any partial status output, retry the status read until
+  the overall migration deadline, and still start XCTest only after every plugin
+  reports success. Keep the repeated-timeout test to prove the deadline remains
+  bounded.
+- Evidence: GitHub Actions run `39061692865`, job `117480800524`; its
+  `boot.log` ended with `Finished`, followed by
+  `Timed out reading simulator migration details`.
+- Verification: `python3 Tests/test-e2e-runner.py` passed all 19 runner tests on
+  2026-10-17, including a timed-out read followed by success and repeated
+  timeouts that stop before XCTest. The fresh iPhone and iPad PR jobs exercise
+  the updated startup path before the UI suite.
 
 ## Share FEN placement decoding while preserving engine piece identities
 
@@ -297,6 +322,28 @@ this file is for reusable project knowledge.
   document the unselected and selected layouts; frame assertions establish
   layout stability that still images alone cannot prove.
 
+## Reveal the history tip after returning from review
+
+- Date and symptom: On 2026-10-17, the nested-branch E2E test returned to the
+  latest board position, but the history still showed its first move instead
+  of the selected line's tip.
+- Cause: `GameViewController.updateView` scrolled only when notation changed.
+  Latest changes the cursor and the layout without changing notation. Scrolling
+  before laying out the restored live controls also uses the old table size.
+- Prevention: Reveal the current ply after layout when moves change or review
+  returns to play. Clear branch-preservation padding when returning to play,
+  while preserving the scroll offset when switching branches during review.
+- Evidence: `GameViewController` (`pendingScrollPly`, `updateView`,
+  `viewDidLayoutSubviews`) and
+  `GameTests.testLatestRevealsTipAfterReviewLayoutChanges`.
+- Verification: On iPhone Duo / iOS 27.1, the regression failed against the
+  original code because the final row ended at y=320 while the table ended
+  at y=109. It passed after the fix, along with the existing nested-branch,
+  historical-search invalidation, and home-safe-area regressions (4/4).
+  The corrected nested-branch E2E also passed through real swipes, page dots,
+  the branch menu, selected-line PGN sharing, and a tappable final move after
+  Latest. Before/after results are in `build/e2e-fixes-20261017`.
+
 ## Refresh derived drawing state when system appearance changes
 
 - Date and symptom: On 2026-10-14, adding dark appearance exposed fixed white
@@ -338,3 +385,163 @@ this file is for reusable project knowledge.
   rendered pixels against the expected source-over color and alpha in both
   appearances. It passed in the full 45-test suite; the corrected dark game
   screenshot shows the board beneath the yellow highlight.
+
+## Distinguish compiling UI tests from running them
+
+- Date and symptom: On 2026-10-16, the E2E test target compiled successfully on
+  Xcode 27.1, but `test-without-building` could not find any simulator destination.
+- Cause: Xcode required CoreSimulator 1174.9.2 while the installed service was
+  1171.7.0. Xcode explicitly disabled simulator device support. A successful
+  `build-for-testing` for a generic simulator destination did not exercise UI tests.
+- Prevention: Report compilation and execution separately. Treat a missing
+  simulator destination as a toolchain failure, and require an actual XCTest run
+  before claiming E2E behavior passes. Keep CI's Xcode installation consistent with
+  its simulator tools; do not change app behavior to mask the environment failure.
+- Evidence: `Tests/run-e2e-tests.sh`, the `ForkChessE2E` scheme, and the local
+  `build/e2e-local/build.log` / `test.log` diagnostics.
+- Runtime verification on 2026-10-17: Simulator destinations became available.
+  Thirty-one distinct E2E cases passed on iPhone Duo / iOS 27.1 across incremental
+  batches after the app and test fixes documented here. This is not a complete
+  passing suite. The landscape case still failed on two separate devices:
+  XCTest acknowledged rotation, but the app window stayed 466 by 678 points.
+  Public `devicectl orientation set` also acknowledged different orientations
+  while an immediate `get` returned portrait. A temporary in-process diagnostic
+  using UIKit's public `requestGeometryUpdate` changed the same window to
+  678 by 466 points. These observations distinguish scene geometry requests
+  from simulated physical orientation; the underlying cause is not established.
+  Keep the rotation assertion and failure evidence. The diagnostic was removed.
+  Results are in `build/e2e-validation-20261017` and `build/e2e-fixes-20261017`.
+- Startup verification: Wait for `simctl bootstatus -b` and retain `boot.log`.
+  On iOS 27.1 it reported terminal `Data Migration Failed` with exit zero, even
+  after a full device restart. A guard based only on that text was also wrong:
+  `bootstatus -d` showed all 35 migration plugins succeeded, and the guest log
+  said migration was unnecessary. On this contradictory summary, retain the
+  plugin details in `migration.log` and require a nonempty set of successful
+  results. Reject any failed, missing, or unreadable details before XCTest.
+  In the opposite failure mode, fresh iOS 27.0 simulators reported terminal
+  `Finished` while 6-18 migration plugins were still pending or running, and app
+  installation then stalled. Therefore, query `bootstatus -d` after every
+  terminal boot summary rather than only for a failure summary. Poll pending and
+  running plugins until a bounded deadline; reject failed, missing, timed-out,
+  or unreadable details. All runner contract tests pass, including contradictory,
+  premature, transiently pending and failed summaries, command errors, cleanup
+  and failure propagation. These subprocess checks do not establish simulator UI
+  stability.
+
+## Account for automation time when checking timer pauses
+
+- Date and symptom: On 2026-10-17, the background timer E2E test first failed
+  because XCTest's Home press left the iPhone Duo app in the foreground.
+  Switching to Settings produced the required real background state. The
+  off-screen/relaunch assertion then failed because navigation and foreground
+  accessibility queries consumed more than its fixed five-second allowance.
+- Prevention: Verify the actual background state after activating another app.
+  Measure elapsed time monotonically, and exclude the explicit inactive interval
+  from the permitted countdown loss. Check that restoration never increases
+  remaining time. Do not replace pause checks with a larger arbitrary tolerance.
+- Evidence: `ChessUITests.testTimerPausesAwayBackgroundAndRestores`,
+  `SceneDelegate` lifecycle callbacks, and the `TIMER` measurements in
+  `build/e2e-fixes-20261017/phone-timer-rotation.log`.
+- Verification: The real-app E2E passed on iOS 27.1 through an eight-second
+  background interval, an eight-second off-screen interval and relaunch.
+  Remaining time changed from 117 to 114 to 107 seconds, within the measured
+  transition budgets. Timer expiry and continued play also passed.
+
+## Cancel adaptive action sheets by tapping outside their popover
+
+- Date and symptom: On 2026-10-17, the new white-game E2E test completed hints,
+  moves and undo, then failed to find Cancel in the iPad resignation sheet.
+- Cause: UIKit omits an action sheet's cancel row when presenting it as an
+  anchored popover. The failure hierarchy contained only the Resign action.
+  A first outside-tap attempt found the alert's own navigation bar and tapped
+  inside the popover instead. The same missing-Cancel presentation was later
+  observed on iPhone Duo / iOS 27.1.
+- Prevention: Use Cancel when the actual presentation contains it; otherwise,
+  tap outside the anchored popover using the app's screen coordinates.
+  Choose from the observed controls rather than the device idiom.
+  Do not assume that an unscoped navigation-bar query identifies the underlying page.
+- Evidence: `ChessUITests.testWhiteGameLegalInputHintUndoAndResign` and
+  `ChessUITestCase.cancelActionSheet(titled:)` in `Tests/UITests`.
+- Verification: The corrected test passed on iPad mini / iOS 27.0, including
+  cancel, confirmed resignation and starting another game. Its result is
+  `build/e2e-validation-20261017/ipad-white.xcresult`. The adaptive control check
+  also passed the full White-game E2E on iPhone Duo / iOS 27.1 in
+  `build/e2e-fixes-20261017/phone-corrected.xcresult`.
+
+## Keep home controls inside the horizontal safe area
+
+- Date and symptom: On 2026-10-17, the E2E Settings test on iPhone Duo / iOS
+  27.1 opened Control Center instead of the app's Settings sheet.
+- Cause: `HomeViewController` constrained its scroll view to the top/bottom safe
+  area but the full window width. This device reported a right safe-area inset
+  of 84 points and no top inset. Settings extended to x=448, beyond the safe
+  area's x=382 edge; the recorded tap at (432.83, 22.67) hit the system region.
+- Prevention: Constrain all four home scroll-view edges to the safe area.
+  Respect nonzero horizontal insets even in portrait; do not assume the system
+  reserves space only above the content or work around it with test coordinates.
+- Evidence: `HomeViewController.viewDidLoad`,
+  `GameTests.testHomeControlsRespectHorizontalSafeArea`, and the failure screenshot,
+  accessibility hierarchy and synthesized event in
+  `build/e2e-validation-20261017/latest-settings.xcresult`.
+- Verification: On the same iOS 27.1 simulator, the regression failed 11 containment
+  assertions before the fix and passed afterward. It checks both the native
+  insets and additional left/right insets. Full E2E validation remains in progress.
+
+## Find native actions across adaptive navigation layouts
+
+- Date and symptom: On 2026-10-17, E2E tests on iPhone Duo / iOS 27.1 could not
+  find Add puzzle, Save, Done, or the destination-labelled Back buttons.
+- Cause: The recorded accessibility hierarchies placed navigation actions in a
+  side `Toolbar`, outside `NavigationBar`. The native back action had identifier
+  `BackButton` instead of the destination's text.
+- Prevention: Give app-owned actions stable accessibility identifiers and query
+  them independently of their UIKit container. Support the observed native
+  toolbar back action as well as destination-labelled navigation back buttons,
+  and verify the destination after tapping.
+- Evidence: `ChessUITestCase.back(to:)`, the bar items in
+  `PuzzleViewController`, `PuzzleEditorViewController`, `SettingsViewController`,
+  and `build/e2e-validation-20261017/latest-phone-fixed.xcresult`.
+- Verification: On iOS 27.1, the Black puzzle editor test passed through Add,
+  Save and gameplay; home/history/puzzle navigation passed, and the complete
+  global settings test passed through license navigation, Done and relaunch.
+
+## Validate native sharing without reading protected clipboard contents
+
+- Date and symptom: On 2026-10-17, a History share E2E test could not find Copy
+  as a button on iOS 27.1. Reading the copied string from the background test
+  runner then failed with `PBErrorDomain Code=13`, operation not authorized.
+- Cause: The native share controller exposed Copy as a cell, and paste
+  authorization prevented this background process from reading another app's
+  clipboard contents.
+- Prevention: Match the observed native Copy button or cell, validate the PGN
+  text exposed by the share preview, and verify the Copy action changes the
+  pasteboard count and dismisses the sheet. Describe this scope accurately:
+  it does not compare the clipboard's copied bytes.
+- Evidence: `ChessUITestCase.shareAndCopy(from:)` and
+  `ChessUITests.testHistoryShareDeleteCancelConfirmAndPersistence`.
+- Verification: The History sharing/deletion test passed on iPhone Duo / iOS
+  27.1, including PGN moves, real Copy, deletion cancel/confirm and relaunch.
+  Its result is `build/e2e-validation-20261017/phone-final.xcresult`.
+
+## Keep adaptive E2E gestures inside their presenting surface
+
+- Date and symptom: On 2026-10-17, PR #22's first full iPad E2E run failed two
+  settings tests. The bot-strength slider stayed at level 11 after XCTest asked
+  for normalized position 0.45. In the board-preferences test, the Settings
+  sheet disappeared after the reveal helper swiped down twice at the table's
+  top edge.
+- Cause: XCTest's native accessibility slider adjustment did not map to the
+  requested position on iPad. The reveal helper always alternated six upward
+  swipes with six downward swipes, and repeated downward overscroll on an iPad
+  page-sheet table can dismiss the sheet interactively.
+- Prevention: Derive the scroll direction from the target and scroll view frames,
+  and swipe down only when the target is actually above the viewport. If native
+  slider adjustment misses the accepted range, drag from the slider's reported
+  thumb position as a real user would, then keep the exact level and Elo
+  assertions instead of weakening them.
+- Evidence: `ChessUITestCase.reveal`, `ChessUITestCase.setSlider`,
+  `testAllGlobalSettingsAndLicensePersist`,
+  `testBoardPreferencesApplyToExistingGames`, and CI run `39056955502`.
+- Verification: The pre-fix iPad job failed these two cases while the iPhone job
+  passed all 32 E2E methods. The corrected UI-test target builds with Xcode 27.1;
+  the following PR matrix run is the authoritative runtime verification.
