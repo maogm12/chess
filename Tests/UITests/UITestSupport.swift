@@ -207,15 +207,53 @@ class ChessUITestCase: XCTestCase {
     func reveal(_ control: XCUIElement, in scroll: XCUIElement? = nil,
                 file: StaticString = #filePath, line: UInt = #line) {
         let scroll = scroll ?? app.tables["settings-list"]
-        for upward in [true, false] {
-            for _ in 0..<6 {
-                if control.exists && control.isHittable { return }
-                if upward { scroll.swipeUp(velocity: .fast) }
-                else { scroll.swipeDown(velocity: .fast) }
+        for _ in 0..<12 {
+            if control.exists && control.isHittable { return }
+            guard scroll.exists else {
+                XCTFail("Scroll container disappeared while revealing \(control)",
+                        file: file, line: line)
+                return
+            }
+            // Only reverse direction when the target is actually above the viewport.
+            // Repeated downward overscroll at the top can interactively dismiss
+            // Settings on iPad.
+            if control.exists && control.frame.midY < scroll.frame.midY {
+                scroll.swipeDown(velocity: .fast)
+            } else {
+                scroll.swipeUp(velocity: .fast)
             }
         }
         if control.exists && control.isHittable { return }
         XCTFail("Could not reveal \(control)", file: file, line: line)
+    }
+
+    func setSlider(_ slider: XCUIElement, toNormalizedSliderPosition position: CGFloat,
+                   acceptedLevels: ClosedRange<Int>,
+                   file: StaticString = #filePath, line: UInt = #line) {
+        slider.adjust(toNormalizedSliderPosition: position)
+        if let level = sliderLevel(slider), acceptedLevels.contains(level) { return }
+
+        // On iPad, accessibility adjustment can land away from the requested
+        // normalized position. Drag from the reported thumb position as a real
+        // user would, then retain the exact-level assertion below.
+        if let level = sliderLevel(slider) {
+            let start = slider.coordinate(withNormalizedOffset:
+                CGVector(dx: CGFloat(level) / 20, dy: 0.5))
+            let end = slider.coordinate(withNormalizedOffset:
+                CGVector(dx: position, dy: 0.5))
+            start.press(forDuration: 0.15, thenDragTo: end)
+        }
+
+        wait({
+            guard let level = self.sliderLevel(slider) else { return false }
+            return acceptedLevels.contains(level)
+        }, "slider near requested position", file: file, line: line)
+    }
+
+    private func sliderLevel(_ slider: XCUIElement) -> Int? {
+        guard let value = slider.value as? String,
+              let first = value.split(separator: " ").first else { return nil }
+        return Int(first)
     }
 
     func choose(_ picker: String, option: String) {

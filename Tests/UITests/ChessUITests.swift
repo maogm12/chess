@@ -287,7 +287,6 @@ final class ChessUITests: ChessUITestCase {
         choose("Bot strength", option: "Expert")
         assertValue(app.buttons["Bot strength"], "Expert · ≈2960 Elo")
         let slider = app.sliders["Bot skill level"]
-        slider.adjust(toNormalizedSliderPosition: 0.45)
         // A native drag is approximate on narrow sliders. Check the exact displayed
         // level and Elo together, rather than assuming a pixel-perfect level 9.
         let strengths = [
@@ -295,7 +294,7 @@ final class ChessUITests: ChessUITestCase {
             "9 of 20": "Club · ≈2102 Elo",
             "10 of 20": "Club · ≈2225 Elo"
         ]
-        wait({ strengths[slider.value as? String ?? ""] != nil }, "slider near requested position")
+        setSlider(slider, toNormalizedSliderPosition: 0.45, acceptedLevels: 8...10)
         let strength = try XCTUnwrap(strengths[slider.value as? String ?? ""])
         assertValue(app.buttons["Bot strength"], strength)
         tap(app.buttons["Bot strength"])

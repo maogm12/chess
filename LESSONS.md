@@ -501,3 +501,26 @@ this file is for reusable project knowledge.
 - Verification: The History sharing/deletion test passed on iPhone Duo / iOS
   27.1, including PGN moves, real Copy, deletion cancel/confirm and relaunch.
   Its result is `build/e2e-validation-20261017/phone-final.xcresult`.
+
+## Keep adaptive E2E gestures inside their presenting surface
+
+- Date and symptom: On 2026-10-17, PR #22's first full iPad E2E run failed two
+  settings tests. The bot-strength slider stayed at level 11 after XCTest asked
+  for normalized position 0.45. In the board-preferences test, the Settings
+  sheet disappeared after the reveal helper swiped down twice at the table's
+  top edge.
+- Cause: XCTest's native accessibility slider adjustment did not map to the
+  requested position on iPad. The reveal helper always alternated six upward
+  swipes with six downward swipes, and repeated downward overscroll on an iPad
+  page-sheet table can dismiss the sheet interactively.
+- Prevention: Derive the scroll direction from the target and scroll view frames,
+  and swipe down only when the target is actually above the viewport. If native
+  slider adjustment misses the accepted range, drag from the slider's reported
+  thumb position as a real user would, then keep the exact level and Elo
+  assertions instead of weakening them.
+- Evidence: `ChessUITestCase.reveal`, `ChessUITestCase.setSlider`,
+  `testAllGlobalSettingsAndLicensePersist`,
+  `testBoardPreferencesApplyToExistingGames`, and CI run `39056955502`.
+- Verification: The pre-fix iPad job failed these two cases while the iPhone job
+  passed all 32 E2E methods. The corrected UI-test target builds with Xcode 27.1;
+  the following PR matrix run is the authoritative runtime verification.
