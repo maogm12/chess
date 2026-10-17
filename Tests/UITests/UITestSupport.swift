@@ -208,23 +208,31 @@ class ChessUITestCase: XCTestCase {
                 file: StaticString = #filePath, line: UInt = #line) {
         let scroll = scroll ?? app.tables["settings-list"]
         for _ in 0..<12 {
-            if control.exists && control.isHittable { return }
+            if isFullyRevealed(control, in: scroll) { return }
             guard scroll.exists else {
                 XCTFail("Scroll container disappeared while revealing \(control)",
                         file: file, line: line)
                 return
             }
-            // Only reverse direction when the target is actually above the viewport.
-            // Repeated downward overscroll at the top can interactively dismiss
-            // Settings on iPad.
-            if control.exists && control.frame.midY < scroll.frame.midY {
+            if scroll.identifier == "settings-list" {
+                // Off-screen table cells can report stale frames on iPad. Always
+                // page downward in content order instead of trusting those frames
+                // and risking a downward overscroll that dismisses the sheet.
+                let start = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
+                let end = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2))
+                start.press(forDuration: 0.1, thenDragTo: end)
+            } else if control.exists && control.frame.midY < scroll.frame.midY {
                 scroll.swipeDown(velocity: .fast)
             } else {
                 scroll.swipeUp(velocity: .fast)
             }
         }
-        if control.exists && control.isHittable { return }
+        if isFullyRevealed(control, in: scroll) { return }
         XCTFail("Could not reveal \(control)", file: file, line: line)
+    }
+
+    private func isFullyRevealed(_ control: XCUIElement, in scroll: XCUIElement) -> Bool {
+        control.exists && control.isHittable && scroll.frame.contains(control.frame)
     }
 
     func setSlider(_ slider: XCUIElement, toNormalizedSliderPosition position: CGFloat,

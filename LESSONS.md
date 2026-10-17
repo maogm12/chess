@@ -533,15 +533,20 @@ this file is for reusable project knowledge.
 - Cause: XCTest's native accessibility slider adjustment did not map to the
   requested position on iPad. The reveal helper always alternated six upward
   swipes with six downward swipes, and repeated downward overscroll on an iPad
-  page-sheet table can dismiss the sheet interactively.
-- Prevention: Derive the scroll direction from the target and scroll view frames,
-  and swipe down only when the target is actually above the viewport. If native
-  slider adjustment misses the accepted range, drag from the slider's reported
-  thumb position as a real user would, then keep the exact level and Elo
-  assertions instead of weakening them.
+  page-sheet table can dismiss the sheet interactively. A follow-up run also
+  showed that partially clipped switches can report `isHittable == true`, while
+  off-screen table cells can report stale frames that point above the viewport.
+- Prevention: Treat a control as revealed only when its full frame is inside the
+  scroll view. For the settings table, use deterministic upward page drags in
+  content order rather than trusting stale off-screen frame coordinates. If
+  native slider adjustment misses the accepted range, drag from the slider's
+  reported thumb position as a real user would, then keep the exact level and
+  Elo assertions instead of weakening them.
 - Evidence: `ChessUITestCase.reveal`, `ChessUITestCase.setSlider`,
   `testAllGlobalSettingsAndLicensePersist`,
-  `testBoardPreferencesApplyToExistingGames`, and CI run `39056955502`.
-- Verification: The pre-fix iPad job failed these two cases while the iPhone job
-  passed all 32 E2E methods. The corrected UI-test target builds with Xcode 27.1;
-  the following PR matrix run is the authoritative runtime verification.
+  `testBoardPreferencesApplyToExistingGames`, CI runs `39056955502` and
+  `39062991338`.
+- Verification: The first iPad job failed the slider and reveal cases while the
+  iPhone job passed all 32 E2E methods. The follow-up run exposed the clipped
+  switch and stale-frame cases on both device families, while preserving the
+  exact settings assertions.
