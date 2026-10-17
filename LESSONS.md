@@ -189,12 +189,14 @@ claiming a newly investigated incident. Add future lessons only with evidence.
 - Verification: Host-only checks compiling the actual export method reproduced
   four failures before the fix and passed all six cases afterward. The standalone
   engine suite passed, and the app plus test targets built for arm64 Simulator.
-  Full simulator execution is currently blocked by Xcode 27.1 requiring
-  CoreSimulator 1174.9.2 while 1171.7 is installed.
+  Initial local simulator execution was blocked by Xcode 27.1 requiring
+  CoreSimulator 1174.9.2 while 1171.7 was installed.
   Two XCTest regressions cover normal starts, both setup colors, later move
-  numbers, empty games, and selected branches after persistence. Publish the
-  PR with this local limitation documented, and use the full CI suites to
-  verify runtime behavior before reporting regression success.
+  numbers, empty games, and selected branches after persistence. PR #20's
+  final commit `f58b7b4` passed both CI suites, including all 48 iOS tests
+  (run `38936221999`). When local infrastructure is unavailable, publish the
+  PR with the limitation documented and check full CI before reporting
+  regression success.
 
 ## Adding or updating a lesson
 
