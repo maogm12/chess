@@ -13,6 +13,7 @@ concurrency:
 
 env:
   DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+  E2E_IOS_VERSION: "26.5"
 
 jobs:
   e2e:

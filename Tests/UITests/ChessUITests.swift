@@ -13,11 +13,11 @@ final class ChessUITests: ChessUITestCase {
         openHistory()
         XCTAssertTrue(app.staticTexts["Your games live here"].exists)
         capture("Empty history")
-        tap(app.navigationBars.buttons["Home"])
+        back(to: "Home")
         tap(app.buttons["Puzzle"])
         XCTAssertEqual(app.collectionViews.cells.count, 1)
         capture("Empty puzzle library")
-        tap(app.navigationBars.buttons["Home"])
+        back(to: "Home")
         capture("Home")
     }
 
@@ -48,7 +48,7 @@ final class ChessUITests: ChessUITestCase {
         XCTAssertFalse(move(1).exists)
         XCTAssertTrue(app.buttons["branch-picker"].exists)
         tap(app.buttons["Resign"])
-        tap(app.buttons["Cancel"])
+        cancelActionSheet(titled: "Resign this game?")
         XCTAssertTrue(app.buttons["Hint"].exists)
         tap(app.buttons["Resign"])
         tap(app.sheets.buttons["Resign"])
@@ -81,7 +81,7 @@ final class ChessUITests: ChessUITestCase {
         try launch()
         start()
         play("e2", "e4", replyPly: 2)
-        tap(app.navigationBars.buttons["Home"])
+        back(to: "Home")
         openHistory()
         XCTAssertEqual(app.tables["saved-games"].cells.count, 1)
         tap(app.tables["saved-games"].cells.firstMatch)
@@ -96,7 +96,7 @@ final class ChessUITests: ChessUITestCase {
         tap(app.buttons["redo-ply-1"])
         waitEnabled(app.buttons["Hint"])
         play("d2", "d4", replyPly: 2)
-        tap(app.navigationBars.buttons["History"])
+        back(to: "History")
         XCTAssertEqual(app.tables["saved-games"].cells.count, 1, "Branches stay in one saved game")
         relaunch()
         openHistory()
@@ -115,15 +115,19 @@ final class ChessUITests: ChessUITestCase {
         try launch(games: [LibraryFixture.tree()])
         openPuzzle()
         waitEnabled(app.buttons["Hint"])
-        let shared = move(1).frame
+        reveal(move(1), in: timeline)
+        tap(move(1))
+        wait({ self.app.navigationBars["Review game"].exists }, "review layout")
         let fork = element("fork-row-2")
-        wait({ fork.exists }, "inline fork")
+        reveal(fork, in: timeline)
+        let shared = move(1).frame
         fork.swipeLeft()
         wait({ self.move(3).label.hasPrefix("Bc4,") }, "swipe to branch")
         XCTAssertEqual(move(1).frame.minY, shared.minY, accuracy: 1)
-        XCTAssertTrue(app.navigationBars.buttons["Puzzle"].exists, "Swipe must not navigate back")
+        XCTAssertTrue(square("a1").exists, "Swipe must not navigate back")
         capture("Branch pager")
         let pager = app.pageIndicators["fork-pager-2"]
+        reveal(pager, in: timeline)
         pager.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.5)).tap()
         wait({ self.move(3).label.hasPrefix("Nf3,") }, "page dot to main line")
         tap(app.buttons["branch-picker"])
@@ -152,9 +156,9 @@ final class ChessUITests: ChessUITestCase {
         let end = timeline.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.85))
         start.press(forDuration: 0.1, thenDragTo: end)
         wait({ self.move(3).exists }, "empty continuation swipe to original")
-        XCTAssertTrue(app.navigationBars.buttons["Puzzle"].exists)
+        XCTAssertTrue(square("a1").exists)
         timeline.swipeUp()
-        XCTAssertTrue(app.navigationBars.buttons["Puzzle"].exists)
+        XCTAssertTrue(square("a1").exists)
     }
 
     func testPuzzleEditorValidationPaletteEraserClearAndSave() throws {
@@ -162,7 +166,7 @@ final class ChessUITests: ChessUITestCase {
         tap(app.buttons["Puzzle"])
         tap(app.collectionViews.cells.firstMatch)
         XCTAssertTrue(app.navigationBars["New puzzle"].exists)
-        XCTAssertFalse(app.navigationBars.buttons["Save"].isEnabled)
+        XCTAssertFalse(app.buttons["save-puzzle"].isEnabled)
         tap(element("setup-square-a8"))
         XCTAssertFalse(app.buttons["White pawn"].isEnabled)
         tap(app.buttons["White king"])
@@ -173,44 +177,44 @@ final class ChessUITests: ChessUITestCase {
         tap(app.buttons["Clear board"])
         XCTAssertTrue(element("setup-square-a8").label.contains("Empty square"))
         place("White king", at: "a1")
-        XCTAssertFalse(app.navigationBars.buttons["Save"].isEnabled, "Both kings are required")
+        XCTAssertFalse(app.buttons["save-puzzle"].isEnabled, "Both kings are required")
         place("Black king", at: "h8")
-        XCTAssertTrue(app.navigationBars.buttons["Save"].isEnabled)
+        XCTAssertTrue(app.buttons["save-puzzle"].isEnabled)
         place("White rook", at: "b1")
-        waitEnabled(app.navigationBars.buttons["Save"])
+        waitEnabled(app.buttons["save-puzzle"])
         place("Eraser", at: "b1")
         XCTAssertTrue(element("setup-square-b1").label.contains("Empty square"))
         place("White rook", at: "b1")
         capture("Puzzle editor")
-        tap(app.navigationBars.buttons["Save"])
+        tap(app.buttons["save-puzzle"])
         waitEnabled(app.buttons["Hint"])
         assertPiece("b1", "White rook")
-        XCTAssertTrue(app.navigationBars.buttons["Puzzle"].exists)
-        tap(app.navigationBars.buttons["Puzzle"])
+        XCTAssertTrue(square("a1").exists)
+        back(to: "Puzzle")
         XCTAssertEqual(app.collectionViews.cells.count, 2)
         capture("Saved puzzle library")
         tap(app.collectionViews.cells.element(boundBy: 1))
         waitEnabled(app.buttons["Hint"])
         play("b1", "b2", replyPly: 2)
-        tap(app.navigationBars.buttons["Puzzle"])
-        tap(app.navigationBars.buttons["Home"])
+        back(to: "Puzzle")
+        back(to: "Home")
         openHistory()
         tap(app.tables["saved-games"].cells.firstMatch)
         waitEnabled(app.buttons["Hint"])
         assertPiece("b2", "White rook")
-        XCTAssertTrue(app.navigationBars.buttons["History"].exists)
+        back(to: "History")
     }
 
     func testBlackPuzzleEditorFlipsAndNavigationBarAdd() throws {
         try launch()
         tap(app.buttons["Puzzle"])
-        tap(app.navigationBars.buttons["Add puzzle"])
+        tap(app.buttons["add-puzzle"])
         tap(app.segmentedControls.buttons["Black"])
         XCTAssertGreaterThan(element("setup-square-a8").frame.minY, element("setup-square-a1").frame.minY)
         place("Black king", at: "h8")
         place("White king", at: "a1")
         place("Black rook", at: "g8")
-        tap(app.navigationBars.buttons["Save"])
+        tap(app.buttons["save-puzzle"])
         waitEnabled(app.buttons["Hint"])
         XCTAssertGreaterThan(square("a8").frame.minY, square("a1").frame.minY)
         play("g8", "g7", replyPly: 2)
@@ -275,6 +279,7 @@ final class ChessUITests: ChessUITestCase {
 
     func testAllGlobalSettingsAndLicensePersist() throws {
         try launch()
+        capture("Home before Settings")
         openSettings()
         choose("Play as", option: "Black")
         choose("Practice duration", option: "15 minutes")
@@ -282,16 +287,25 @@ final class ChessUITests: ChessUITestCase {
         assertValue(app.buttons["Bot strength"], "Expert · ≈2960 Elo")
         let slider = app.sliders["Bot skill level"]
         slider.adjust(toNormalizedSliderPosition: 0.45)
-        wait({ (self.app.sliders["Bot skill level"].value as? String) == "9 of 20" }, "exact slider level")
+        // A native drag is approximate on narrow sliders. Check the exact displayed
+        // level and Elo together, rather than assuming a pixel-perfect level 9.
+        let strengths = [
+            "8 of 20": "Casual · ≈1980 Elo",
+            "9 of 20": "Club · ≈2102 Elo",
+            "10 of 20": "Club · ≈2225 Elo"
+        ]
+        wait({ strengths[slider.value as? String ?? ""] != nil }, "slider near requested position")
+        let strength = try XCTUnwrap(strengths[slider.value as? String ?? ""])
+        assertValue(app.buttons["Bot strength"], strength)
         tap(app.buttons["Bot strength"])
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Club'")).firstMatch.exists)
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", strength)).firstMatch.exists)
         // Selecting a preset closes the native menu and checks both control paths.
         tap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Beginner'")).firstMatch)
-        choose("Thinking time", option: "Quick")
-        for name in ["Rate each move", "Show legal moves", "Show coordinates", "Move haptics"] {
-            let control = app.switches[name]
-            reveal(control)
-            tap(control)
+        choose("Thinking time", option: "Deeper")
+        assertValue(app.buttons["Thinking time"], "Deeper · 2 seconds")
+        for (name, enabled) in [("Rate each move", true), ("Show legal moves", false),
+                                ("Show coordinates", false), ("Move haptics", true)] {
+            setSwitch(name, on: enabled)
         }
         choose("Board colors", option: "Forest")
         choose("Board colors", option: "Walnut")
@@ -302,13 +316,14 @@ final class ChessUITests: ChessUITestCase {
         XCTAssertTrue(app.navigationBars["Arasan · MIT"].exists)
         XCTAssertTrue((app.textViews["engine-license"].value as? String)?.contains("Permission is hereby granted") == true)
         capture("Engine license")
-        tap(app.navigationBars.buttons["Settings"])
+        back(to: "Settings")
         done()
         relaunch()
         assertValue(app.buttons["Play Black"], "Selected")
         openSettings()
         assertValue(app.buttons["Practice duration"], "15 minutes")
         assertValue(app.buttons["Bot strength"], "Beginner · ≈1245 Elo")
+        assertValue(app.buttons["Thinking time"], "Deeper · 2 seconds")
         reveal(app.switches["Rate each move"])
         assertValue(app.switches["Rate each move"], "1")
         reveal(app.buttons["Board colors"])
@@ -327,13 +342,13 @@ final class ChessUITests: ChessUITestCase {
         XCTAssertFalse(app.buttons["Board colors"].exists)
         choose("Bot strength", option: "Expert")
         choose("Thinking time", option: "Balanced")
-        tap(app.switches["Rate each move"])
+        setSwitch("Rate each move", on: true)
         choose("Practice duration", option: "5 minutes")
         capture("Game settings")
         done()
         XCTAssertGreaterThan(timerSeconds(), 285)
         XCTAssertLessThanOrEqual(timerSeconds(), 300)
-        tap(app.navigationBars.buttons["Home"])
+        back(to: "Home")
         openSettings()
         assertValue(app.buttons["Bot strength"], "Beginner · ≈1245 Elo")
         assertValue(app.buttons["Practice duration"], "10 minutes")
@@ -342,7 +357,7 @@ final class ChessUITests: ChessUITestCase {
         openSettings(game: true)
         assertValue(app.buttons["Bot strength"], "Beginner · ≈1245 Elo")
         done()
-        tap(app.navigationBars.buttons["Home"])
+        back(to: "Home")
         openHistory()
         XCTAssertEqual(app.tables["saved-games"].cells.count, 2)
         tap(app.tables["saved-games"].cells.element(boundBy: 1))
@@ -383,8 +398,7 @@ final class ChessUITests: ChessUITestCase {
         openSettings()
         choose("Board colors", option: "Forest")
         for name in ["Show legal moves", "Show coordinates"] {
-            reveal(app.switches[name])
-            tap(app.switches[name])
+            setSwitch(name, on: false)
         }
         done()
         openPuzzle()
@@ -395,12 +409,11 @@ final class ChessUITests: ChessUITestCase {
         capture("Forest without coordinates or legal markers")
         tap(square("e4"))
         wait({ self.move(2).exists }, "legal move with markers disabled")
-        tap(app.navigationBars.buttons["Puzzle"])
-        tap(app.navigationBars.buttons["Home"])
+        back(to: "Puzzle")
+        back(to: "Home")
         openSettings()
         choose("Board colors", option: "Walnut")
-        reveal(app.switches["Show legal moves"])
-        tap(app.switches["Show legal moves"])
+        setSwitch("Show legal moves", on: true)
         done()
         openPuzzle()
         waitEnabled(app.buttons["Hint"])
@@ -463,22 +476,30 @@ final class ChessUITests: ChessUITestCase {
         assertValue(element("Captured by White"), "None")
     }
 
-    func testAllPromotionChoicesForBothColors() throws {
-        for white in [true, false] {
-            for (kind, name) in [("q", "queen"), ("r", "rook"), ("b", "bishop"), ("n", "knight")] {
-                let fen = white ? "7k/P7/8/8/8/8/8/7K w - - 0 1" : "7k/8/8/8/8/8/p7/7K b - - 0 1"
-                try launch(games: [LibraryFixture.game(fen: fen, white: white)])
-                openPuzzle()
-                let destination = white ? "a8" : "a1"
-                play(white ? "a7" : "a2", destination)
-                XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'promote-'")).count, 4)
-                assertValue(square(destination), "Awaiting promotion")
-                tap(app.buttons["promote-\(kind)"])
-                assertPiece(destination, "\(white ? "White" : "Black") \(name)")
-                wait({ self.move(1).exists }, "promotion notation")
-                XCTAssertTrue(move(1).label.contains("=\(kind.uppercased())"))
-                capture("\(white ? "White" : "Black") promotion \(kind)")
-            }
+    func testWhitePromotionChoices() throws {
+        try checkPromotionChoices(white: true)
+    }
+
+    func testBlackPromotionChoices() throws {
+        try checkPromotionChoices(white: false)
+    }
+
+    private func checkPromotionChoices(white: Bool) throws {
+        for (kind, name) in [("q", "queen"), ("r", "rook"), ("b", "bishop"), ("n", "knight")] {
+            let fen = white ? "7k/P7/8/8/8/8/8/7K w - - 0 1" : "7k/8/8/8/8/8/p7/7K b - - 0 1"
+            try launch(games: [LibraryFixture.game(fen: fen, white: white)])
+            openPuzzle()
+            let destination = white ? "a8" : "a1"
+            play(white ? "a7" : "a2", destination)
+            wait({
+                self.app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'promote-'")).count == 4
+            }, "four promotion choices")
+            assertValue(square(destination), "Awaiting promotion")
+            tap(app.buttons["promote-\(kind)"])
+            assertPiece(destination, "\(white ? "White" : "Black") \(name)")
+            wait({ self.move(1).exists }, "promotion notation")
+            XCTAssertTrue(move(1).label.contains("=\(kind.uppercased())"))
+            capture("\(white ? "White" : "Black") promotion \(kind)")
         }
     }
 
@@ -600,7 +621,7 @@ final class ChessUITests: ChessUITestCase {
         waitEnabled(app.buttons["Hint"])
         XCTAssertGreaterThan(timerSeconds(), beforeBackground - 6)
         let beforeAway = timerSeconds()
-        tap(app.navigationBars.buttons["Puzzle"])
+        back(to: "Puzzle")
         let away = XCTestExpectation(description: "Practice stays off screen")
         away.isInverted = true
         wait(for: [away], timeout: 8)
@@ -629,12 +650,12 @@ final class ChessUITests: ChessUITestCase {
         tap(square("e2"))
         tap(square("e4"))
         wait({ self.move(1).exists }, "human move accepted")
-        tap(app.navigationBars.buttons["Home"])
+        back(to: "Home")
         start()
         waitEnabled(app.buttons["Hint"])
         XCTAssertFalse(move(1).exists)
         tap(app.buttons["Hint"])
-        tap(app.navigationBars.buttons["Home"])
+        back(to: "Home")
         start()
         waitEnabled(app.buttons["Hint"])
         XCTAssertFalse(move(1).exists)
@@ -664,52 +685,64 @@ final class ChessUITests: ChessUITestCase {
         assertPiece("c4", "White bishop")
     }
 
-    func testLightAndDarkPagesRemainUsableAfterRotation() throws {
-        for appearance in ["Light", "Dark"] {
-            try launch(games: [LibraryFixture.tree()], appearance: appearance)
-            capture("\(appearance) Home")
-            openSettings()
-            capture("\(appearance) Settings")
-            let license = app.staticTexts["Engine license (MIT)"]
-            reveal(license)
-            tap(license)
-            XCTAssertTrue(app.navigationBars["Arasan · MIT"].exists)
-            capture("\(appearance) License")
-            tap(app.navigationBars.buttons["Settings"])
-            done()
-            openHistory()
-            capture("\(appearance) History")
-            tap(app.navigationBars.buttons["Home"])
-            tap(app.buttons["Puzzle"])
-            capture("\(appearance) Puzzle library")
-            tap(app.navigationBars.buttons["Add puzzle"])
-            capture("\(appearance) Puzzle editor")
-            tap(element("setup-square-d4"))
-            capture("\(appearance) Piece picker")
-            tap(app.buttons["Eraser"])
-            tap(app.navigationBars.buttons["Puzzle"])
-            tap(app.collectionViews.cells.element(boundBy: 1))
-            waitEnabled(app.buttons["Hint"])
-            capture("\(appearance) Game portrait")
-            openSettings(game: true)
-            capture("\(appearance) Game settings")
-            done()
-            XCUIDevice.shared.orientation = .landscapeLeft
-            wait({ self.app.frame.width > self.app.frame.height }, "landscape")
-            waitEnabled(app.buttons["Hint"])
-            XCTAssertTrue(square("a1").isHittable)
-            XCTAssertTrue(square("h8").isHittable)
-            capture("\(appearance) Game landscape")
-            tap(move(1))
-            XCTAssertTrue(app.buttons["redo-ply-1"].exists)
-            capture("\(appearance) Replay landscape")
-            XCUIDevice.shared.orientation = .portrait
-            try launch(games: [LibraryFixture.game(fen: "7k/P7/8/8/8/8/8/7K w - - 0 1")],
-                       appearance: appearance)
-            openPuzzle()
-            play("a7", "a8")
-            waitEnabled(app.buttons["promote-q"])
-            capture("\(appearance) Promotion picker")
-        }
+    func testLightPagesAndPickers() throws {
+        try checkPagesAndPickers(appearance: "Light")
+    }
+
+    func testDarkPagesAndPickers() throws {
+        try checkPagesAndPickers(appearance: "Dark")
+    }
+
+    func testGameLandscapeAndReplay() throws {
+        try launch(games: [LibraryFixture.tree()])
+        openPuzzle()
+        waitEnabled(app.buttons["Hint"])
+        XCUIDevice.shared.orientation = .landscapeRight
+        wait({ self.app.frame.width > self.app.frame.height }, "landscape")
+        waitEnabled(app.buttons["Hint"])
+        XCTAssertTrue(square("a1").isHittable)
+        XCTAssertTrue(square("h8").isHittable)
+        capture("Game landscape")
+        reveal(move(1), in: timeline)
+        tap(move(1))
+        XCTAssertTrue(app.buttons["redo-ply-1"].exists)
+        capture("Replay landscape")
+    }
+
+    private func checkPagesAndPickers(appearance: String) throws {
+        try launch(games: [LibraryFixture.tree()], appearance: appearance)
+        capture("\(appearance) Home")
+        openSettings()
+        capture("\(appearance) Settings")
+        let license = app.staticTexts["Engine license (MIT)"]
+        reveal(license)
+        tap(license)
+        XCTAssertTrue(app.navigationBars["Arasan · MIT"].exists)
+        capture("\(appearance) License")
+        back(to: "Settings")
+        done()
+        openHistory()
+        capture("\(appearance) History")
+        back(to: "Home")
+        tap(app.buttons["Puzzle"])
+        capture("\(appearance) Puzzle library")
+        tap(app.buttons["add-puzzle"])
+        capture("\(appearance) Puzzle editor")
+        tap(element("setup-square-d4"))
+        capture("\(appearance) Piece picker")
+        tap(app.buttons["Eraser"])
+        back(to: "Puzzle")
+        tap(app.collectionViews.cells.element(boundBy: 1))
+        waitEnabled(app.buttons["Hint"])
+        capture("\(appearance) Game portrait")
+        openSettings(game: true)
+        capture("\(appearance) Game settings")
+        done()
+        try launch(games: [LibraryFixture.game(fen: "7k/P7/8/8/8/8/8/7K w - - 0 1")],
+                   appearance: appearance)
+        openPuzzle()
+        play("a7", "a8")
+        waitEnabled(app.buttons["promote-q"])
+        capture("\(appearance) Promotion picker")
     }
 }

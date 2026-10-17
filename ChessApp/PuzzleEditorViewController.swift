@@ -31,6 +31,7 @@ final class PuzzleEditorViewController: UIViewController, UIPopoverPresentationC
         view.backgroundColor = ForkChessTheme.background
         view.tintColor = ForkChessTheme.accent
         navigationItem.rightBarButtonItem = save
+        save.accessibilityIdentifier = "save-puzzle"
 
         board.colors = ChessBoardPalette.colors(for: game.settings.boardTheme)
         board.haptics = game.settings.haptics

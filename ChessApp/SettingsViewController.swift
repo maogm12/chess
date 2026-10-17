@@ -77,6 +77,7 @@ final class SettingsViewController: GameObservingViewController, UITableViewData
         navigationItem.rightBarButtonItem = UIBarButtonItem(systemItem: .done, primaryAction: UIAction { [weak self] _ in
             self?.dismiss(animated: true)
         })
+        navigationItem.rightBarButtonItem?.accessibilityIdentifier = "settings-done"
         table.backgroundColor = .clear
         table.accessibilityIdentifier = "settings-list"
         table.dataSource = self

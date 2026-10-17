@@ -199,10 +199,21 @@ triggers. The **ForkChessE2E** scheme contains the independent
 `ForkChessUITests` UI-testing target.
 
 The workflow runs the full suite on both iPhone and iPad in separate jobs. Each
-job creates its own simulator using the latest available iOS runtime, runs tests
+job creates its own simulator on the newest available runtime for its device
+family, preferring iPhone 17 Pro and iPad mini (A17 Pro) when that runtime supports
+them (falling back to another device in that family if needed), runs tests
 serially without automatic retries, and removes that simulator on exit. Results,
 logs, failure accessibility hierarchies, and named screenshots are retained for
 14 days, including when a test fails.
+Device selection uses the runtime's supported device types and needs no existing
+simulator. Verbose system-wide diagnostics are disabled; XCTest results and the
+suite's explicit screenshots and failure hierarchies remain enabled.
+The runner waits for simulator boot and data migration before starting XCTest,
+and retains this separate startup log as `boot.log`.
+CI pins `E2E_IOS_VERSION=26.5` to match Xcode 26.6. This keeps a newer installed
+runtime from being selected by an older Xcode. Set the same variable locally to
+reproduce CI; without it, the script selects the newest runtime for the device
+family. It never downloads or installs a runtime.
 
 The UI tests launch the real app and operate through XCTest taps, swipes, native
 menus, popovers, sheets, and background/relaunch transitions. They use the bundled
@@ -221,7 +232,7 @@ with visible state; explicit background/off-screen intervals test timer pausing.
 | Special moves and captures | Both castling directions, en passant, captured tray restoration, all four promotions for both colors, promotion capture preview, real outside-tap cancellation, promotion persistence |
 | Check and endings | Check/replay markers, human checkmate and redo, stalemate, insufficient material, 50-move and threefold draws |
 | Timer and asynchronous work | Running countdown, background/off-screen pause, saved time restoration, expiry without ending play, leaving during bot and hint searches |
-| Sharing and deletion | Real system share sheet and copied PGN contents from game/history/puzzle, selected-line and FEN exports, delete cancel/confirm, persisted deletion |
+| Sharing and deletion | Real system share sheet, PGN preview contents and Copy from game/history/puzzle, selected-line and FEN exports, delete cancel/confirm, persisted deletion |
 | Compatibility and layout | Legacy manual-play JSON, light/dark screenshots across pages and pickers, portrait/landscape board and replay controls on iPhone/iPad |
 
 Fixtures describe saved positions through the library's JSON format; they do not
@@ -235,6 +246,10 @@ Screenshots are evidence for review, not automatic pixel comparisons. Exact
 geometry, live system appearance changes, haptic callbacks, engine evaluation
 thresholds, and older library-directory migration also retain their more precise
 coverage in `Tests/GameTests.swift` and `Tests/EngineTests.mm`.
+Sharing checks the PGN text exposed by the native preview, then verifies that
+Copy changes the pasteboard and dismisses the sheet. It does not read clipboard
+contents from the background UI-test runner, which iOS paste authorization can
+deny.
 
 Run the expensive suite locally only when explicitly needed, using the separate
 scheme or script on an ARM64 Mac with a matching Xcode/CoreSimulator installation:

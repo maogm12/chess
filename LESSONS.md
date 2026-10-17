@@ -52,6 +52,10 @@ claiming a newly investigated incident. Add future lessons only with evidence.
 - Verification: The initial cloud run reproduced the failure. The updated
   script passed the full engine suite under Bash 3.2.57 locally and in the
   engine job of GitHub Actions run `38622610066` (commit `56a20d7`).
+  On 2026-10-17, an unmatched apostrophe in a Python heredoc comment inside
+  a quoted command substitution also broke Bash 3.2 parsing in the E2E runner.
+  Removing that apostrophe restored parsing. Run syntax and subprocess checks
+  with `/bin/bash`, including after changes to embedded Python comments.
 
 ## Share FEN placement decoding while preserving engine piece identities
 
@@ -358,3 +362,112 @@ this file is for reusable project knowledge.
   launch keys are excluded. The standalone Arasan regression suite and six runner
   isolation/failure tests passed. UI gestures and system sheets were not
   runtime-verified in this environment.
+- Follow-up on 2026-10-17: Simulator destinations became available. The first
+  actual iPhone run failed while waiting for Settings. On iPhone 17 Pro / iOS
+  27.0, Settings opened, but tapping its native side menu stalled in XCTest
+  quiescence and remote accessibility queries, exceeding the 240-second test
+  allowance. Restarting the user CoreSimulator service did not resolve this
+  menu failure. Its underlying cause is not established; the continuity-display
+  warning also occurs on an ordinary iPhone and does not establish a device fault.
+  The iPad mini / iOS 27.0 home/navigation smoke test passed. Keep full E2E
+  validation unverified until the suite completes. Logs are in
+  `build/e2e-phone-restarted-20261017/e2e.log` and
+  `build/e2e-ipad-smoke-20261017/e2e.log`.
+- Later verification on 2026-10-17: Eighteen distinct E2E cases passed on
+  iPhone Duo / iOS 27.1 after fixing the concrete safe-area, adaptive navigation,
+  and test synchronization issues described below. This is evidence from
+  incremental batches, not a complete passing suite. The isolated landscape
+  case still failed on two separate iOS 27.1 devices: XCTest reported the device
+  orientation change, while the app window stayed 466 by 678 points. A temporary
+  in-process diagnostic using UIKit's public `requestGeometryUpdate` successfully
+  changed the same app window to 678 by 466 points. This distinguishes explicit
+  scene geometry requests from XCTest's physical-orientation simulation; it
+  does not establish the underlying system cause. Keep the E2E rotation
+  assertion and its failure evidence rather than forcing app orientation or
+  claiming that compiling, an older runtime, or the diagnostic validates it.
+  The diagnostic was removed after execution. Results are in
+  `build/e2e-validation-20261017/rotation-clean.xcresult` and
+  `rotation-diagnostic.xcresult`.
+- Startup follow-up: The runner now waits for `simctl bootstatus -b` before
+  XCTest and retains `boot.log`. All ten runner contract tests passed, including
+  startup ordering and cleanup/failure propagation when boot fails. These
+  subprocess checks do not establish simulator stability. An iPad / iOS 27.0
+  comparison was canceled after app launch exceeded the four-minute test
+  allowance, before it reached the rotation assertion. A separate launch probe
+  then received `SBMainWorkspace` Busy / application failed preflight checks,
+  and the simulator UI tool timed out creating a remote automation session.
+  Keep this startup failure separate from the iPhone rotation assertion failure.
+  See `build/e2e-validation-20261017/ipad-rotation.xcresult` and
+  `ipad-launch-probe.log`.
+
+## Cancel iPad action sheets by tapping outside their popover
+
+- Date and symptom: On 2026-10-17, the new white-game E2E test completed hints,
+  moves and undo, then failed to find Cancel in the iPad resignation sheet.
+- Cause: UIKit omits an action sheet's cancel row when presenting it as an
+  anchored iPad popover. The failure hierarchy contained only the Resign action.
+  A first outside-tap attempt found the alert's own navigation bar and tapped
+  inside the popover instead.
+- Prevention: Use the actual iPhone Cancel action, and tap outside the anchored
+  popover on iPad using the app's screen coordinates. Do not assume that an
+  unscoped navigation-bar query identifies the underlying page.
+- Evidence: `ChessUITests.testWhiteGameLegalInputHintUndoAndResign` and
+  `ChessUITestCase.cancelActionSheet(titled:)` in `Tests/UITests`.
+- Verification: The corrected test passed on iPad mini / iOS 27.0, including
+  cancel, confirmed resignation and starting another game. Its result is
+  `build/e2e-validation-20261017/ipad-white.xcresult`.
+
+## Keep home controls inside the horizontal safe area
+
+- Date and symptom: On 2026-10-17, the E2E Settings test on iPhone Duo / iOS
+  27.1 opened Control Center instead of the app's Settings sheet.
+- Cause: `HomeViewController` constrained its scroll view to the top/bottom safe
+  area but the full window width. This device reported a right safe-area inset
+  of 84 points and no top inset. Settings extended to x=448, beyond the safe
+  area's x=382 edge; the recorded tap at (432.83, 22.67) hit the system region.
+- Prevention: Constrain all four home scroll-view edges to the safe area.
+  Respect nonzero horizontal insets even in portrait; do not assume the system
+  reserves space only above the content or work around it with test coordinates.
+- Evidence: `HomeViewController.viewDidLoad`,
+  `GameTests.testHomeControlsRespectHorizontalSafeArea`, and the failure screenshot,
+  accessibility hierarchy and synthesized event in
+  `build/e2e-validation-20261017/latest-settings.xcresult`.
+- Verification: On the same iOS 27.1 simulator, the regression failed 11 containment
+  assertions before the fix and passed afterward. It checks both the native
+  insets and additional left/right insets. Full E2E validation remains in progress.
+
+## Find native actions across adaptive navigation layouts
+
+- Date and symptom: On 2026-10-17, E2E tests on iPhone Duo / iOS 27.1 could not
+  find Add puzzle, Save, Done, or the destination-labelled Back buttons.
+- Cause: The recorded accessibility hierarchies placed navigation actions in a
+  side `Toolbar`, outside `NavigationBar`. The native back action had identifier
+  `BackButton` instead of the destination's text.
+- Prevention: Give app-owned actions stable accessibility identifiers and query
+  them independently of their UIKit container. Support the observed native
+  toolbar back action as well as destination-labelled navigation back buttons,
+  and verify the destination after tapping.
+- Evidence: `ChessUITestCase.back(to:)`, the bar items in
+  `PuzzleViewController`, `PuzzleEditorViewController`, `SettingsViewController`,
+  and `build/e2e-validation-20261017/latest-phone-fixed.xcresult`.
+- Verification: On iOS 27.1, the Black puzzle editor test passed through Add,
+  Save and gameplay; home/history/puzzle navigation passed, and the complete
+  global settings test passed through license navigation, Done and relaunch.
+
+## Validate native sharing without reading protected clipboard contents
+
+- Date and symptom: On 2026-10-17, a History share E2E test could not find Copy
+  as a button on iOS 27.1. Reading the copied string from the background test
+  runner then failed with `PBErrorDomain Code=13`, operation not authorized.
+- Cause: The native share controller exposed Copy as a cell, and paste
+  authorization prevented this background process from reading another app's
+  clipboard contents.
+- Prevention: Match the observed native Copy button or cell, validate the PGN
+  text exposed by the share preview, and verify the Copy action changes the
+  pasteboard count and dismisses the sheet. Describe this scope accurately:
+  it does not compare the clipboard's copied bytes.
+- Evidence: `ChessUITestCase.shareAndCopy(from:)` and
+  `ChessUITests.testHistoryShareDeleteCancelConfirmAndPersistence`.
+- Verification: The History sharing/deletion test passed on iPhone Duo / iOS
+  27.1, including PGN moves, real Copy, deletion cancel/confirm and relaunch.
+  Its result is `build/e2e-validation-20261017/phone-final.xcresult`.

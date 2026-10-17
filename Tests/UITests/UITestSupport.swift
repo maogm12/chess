@@ -69,9 +69,11 @@ class ChessUITestCase: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        if let app, testRun?.hasSucceeded == false {
+        if let app, (testRun?.totalFailureCount ?? 0) > 0 {
             capture("Failure")
-            let hierarchy = XCTAttachment(string: app.debugDescription)
+            let description = app.debugDescription
+            print("UI failure hierarchy:\n\(description)")
+            let hierarchy = XCTAttachment(string: description)
             hierarchy.name = "Accessibility hierarchy"
             hierarchy.lifetime = .keepAlways
             add(hierarchy)
@@ -173,7 +175,34 @@ class ChessUITestCase: XCTestCase {
         wait({ self.app.navigationBars[game ? "Game settings" : "Settings"].exists }, "settings sheet")
     }
 
-    func done() { tap(app.navigationBars.buttons["Done"]) }
+    func done() {
+        tap(app.buttons["settings-done"])
+        wait({ !self.app.buttons["settings-done"].exists }, "settings dismissed")
+    }
+
+    func back(to title: String) {
+        let navigationBack = app.navigationBars.buttons[title]
+        let toolbarBack = app.toolbars.buttons["BackButton"]
+        // UIKit can move navigation actions into an adaptive side toolbar.
+        wait({ navigationBack.exists || toolbarBack.exists }, "back control for \(title)")
+        tap(navigationBack.exists ? navigationBack : toolbarBack)
+        if title == "Home" {
+            waitEnabled(app.buttons["Start new game"])
+        } else {
+            wait({ self.app.navigationBars[title].exists }, "returned to \(title)")
+        }
+    }
+
+    func cancelActionSheet(titled title: String) {
+        wait({ self.app.staticTexts[title].exists }, "action sheet \(title)")
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            // UIKit omits the cancel row in an iPad action-sheet popover.
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.2)).tap()
+        } else {
+            tap(app.buttons["Cancel"])
+        }
+        wait({ !self.app.staticTexts[title].exists }, "action sheet dismissed")
+    }
 
     func reveal(_ control: XCUIElement, in scroll: XCUIElement? = nil,
                 file: StaticString = #filePath, line: UInt = #line) {
@@ -196,6 +225,14 @@ class ChessUITestCase: XCTestCase {
         tap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", option)).firstMatch)
     }
 
+    func setSwitch(_ name: String, on: Bool) {
+        let control = app.switches[name]
+        reveal(control)
+        let expected = on ? "1" : "0"
+        if (control.value as? String) != expected { tap(control) }
+        assertValue(control, expected)
+    }
+
     func capture(_ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name
@@ -204,15 +241,22 @@ class ChessUITestCase: XCTestCase {
     }
 
     func shareAndCopy(from control: XCUIElement) -> String {
-        // Copy exercises the real activity controller without sending to another app/person.
-        UIPasteboard.general.string = ""
         tap(control)
-        let copy = app.buttons["Copy"]
-        wait({ copy.exists }, "system share sheet")
+        let copyButton = app.buttons["Copy"]
+        let copyCell = app.cells.matching(NSPredicate(format: "label == 'Copy'")).firstMatch
+        wait({ copyButton.exists || copyCell.exists }, "system share sheet")
+        let preview = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label BEGINSWITH %@", "[Event \"")).firstMatch
+        wait({ preview.exists }, "system PGN preview")
+        let pgn = preview.label
         capture("Share PGN")
-        tap(copy)
-        wait({ UIPasteboard.general.string?.contains("[Event") == true }, "copied PGN")
-        return UIPasteboard.general.string ?? ""
+        // Background UI runners cannot read another app's clipboard. Validate
+        // the system preview text, then confirm Copy writes to the pasteboard.
+        let changes = UIPasteboard.general.changeCount
+        tap(copyButton.exists ? copyButton : copyCell)
+        wait({ UIPasteboard.general.changeCount > changes }, "Copy updates the pasteboard")
+        wait({ !copyButton.exists && !copyCell.exists }, "share sheet dismissed")
+        return pgn
     }
 
     func place(_ piece: String, at coordinate: String) {

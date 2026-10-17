@@ -25,19 +25,39 @@ class E2ERunnerTests(unittest.TestCase):
             **os.environ,
             "PATH": str(self.bin) + os.pathsep + os.environ["PATH"],
             "E2E_RUNNER_TRACE": str(self.trace),
+            "E2E_IOS_VERSION": "",
         }
         self.stub("uname", 'print("arm64")')
         self.stub("xcrun", """
 args = sys.argv[1:]
-if args[:3] == ["simctl", "list", "devices"]:
+if args[:3] == ["simctl", "list", "runtimes"]:
     family = os.environ.get("E2E_STUB_FAMILY", "iPhone")
     devices = [] if family == "none" else [{
-        "name": family + " Test", "isAvailable": True,
-        "deviceTypeIdentifier": "test-device-type"
+        "name": "iPhone 17 Pro" if family == "iPhone" else "iPad mini (A17 Pro)",
+        "identifier": "test-device-type"
     }]
-    print(json.dumps({"devices": {"com.apple.CoreSimulator.SimRuntime.iOS-26-5": devices}}))
+    runtimes = [{
+        "identifier": "com.apple.CoreSimulator.SimRuntime.iOS-26-5",
+        "version": "26.5", "isAvailable": True, "supportedDeviceTypes": devices
+    }]
+    if os.environ.get("E2E_STUB_DUO"):
+        runtimes.append({
+            "identifier": "com.apple.CoreSimulator.SimRuntime.iOS-27-1",
+            "version": "27.1", "isAvailable": True,
+            "supportedDeviceTypes": [{"name": "iPhone Duo", "identifier": "duo-type"}]
+        })
+    if os.environ.get("E2E_STUB_NEWER"):
+        runtimes.append({
+            "identifier": "com.apple.CoreSimulator.SimRuntime.iOS-27-0",
+            "version": "27.0", "isAvailable": True, "supportedDeviceTypes": devices
+        })
+    print(json.dumps({"runtimes": runtimes}))
 elif args[:2] == ["simctl", "create"]:
     print("11111111-1111-1111-1111-111111111111")
+elif args[:2] == ["simctl", "bootstatus"]:
+    assert args[2:] == ["11111111-1111-1111-1111-111111111111", "-b"], args
+    print("Simulator boot status")
+    sys.exit(int(os.environ.get("E2E_STUB_BOOT_EXIT", "0")))
 elif args[:2] not in (["simctl", "shutdown"], ["simctl", "delete"]):
     sys.exit("Unexpected simctl command")
 """)
@@ -49,6 +69,7 @@ else:
     assert args[0] == "test", args
     assert args[args.index("-scheme") + 1] == "ForkChessE2E", args
     assert args[args.index("-parallel-testing-enabled") + 1] == "NO", args
+    assert args[args.index("-collect-test-diagnostics") + 1] == "never", args
     assert args[args.index("-destination") + 1].endswith("11111111-1111-1111-1111-111111111111"), args
     Path(args[args.index("-resultBundlePath") + 1]).mkdir()
     print("UI runner output")
@@ -92,6 +113,17 @@ else:
         self.assert_cleanup()
         self.assertIn("UI runner output", (self.root / "results/e2e.log").read_text())
         self.assertEqual((self.root / "results/simulator-id.txt").read_text().strip(), SIMULATOR)
+        boot = ["xcrun", "simctl", "bootstatus", SIMULATOR, "-b"]
+        test = next(command for command in self.commands() if command[:2] == ["xcodebuild", "test"])
+        self.assertLess(self.commands().index(boot), self.commands().index(test))
+        self.assertIn("Simulator boot status", (self.root / "results/boot.log").read_text())
+
+    def test_boot_failure_preserves_logs_and_cleans_up_without_testing(self):
+        result = self.run_script(E2E_STUB_BOOT_EXIT="43")
+        self.assertEqual(result.returncode, 43, result.stderr)
+        self.assert_cleanup()
+        self.assertIn("Simulator boot status", (self.root / "results/boot.log").read_text())
+        self.assertFalse(any(command[:2] == ["xcodebuild", "test"] for command in self.commands()))
 
     def test_xcodebuild_failure_keeps_evidence_and_propagates_exit_code(self):
         result = self.run_script(E2E_STUB_EXIT="42")
@@ -109,6 +141,27 @@ else:
             "com.apple.CoreSimulator.SimRuntime.iOS-26-5",
         ])
         self.assert_cleanup()
+
+    def test_newest_runtime_takes_precedence_over_preferred_screen_size(self):
+        result = self.run_script(E2E_STUB_DUO="1")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        create = next(command for command in self.commands() if command[1:3] == ["simctl", "create"])
+        self.assertEqual(create[-2:], ["duo-type", "com.apple.CoreSimulator.SimRuntime.iOS-27-1"])
+        self.assert_cleanup()
+
+    def test_requested_version_keeps_newer_installed_runtime_out_of_ci(self):
+        result = self.run_script(E2E_STUB_NEWER="1", E2E_IOS_VERSION="26.5")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        create = next(command for command in self.commands() if command[1:3] == ["simctl", "create"])
+        self.assertEqual(create[-1], "com.apple.CoreSimulator.SimRuntime.iOS-26-5")
+        self.assert_cleanup()
+
+    def test_missing_requested_runtime_does_not_create_a_device(self):
+        result = self.run_script(E2E_IOS_VERSION="99.0")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("No available iPhone simulator on iOS 99.0", result.stderr)
+        self.assertFalse(any(command[1:3] in (["simctl", "create"], ["simctl", "delete"])
+                             for command in self.commands()))
 
     def test_existing_result_is_not_overwritten(self):
         (self.root / "results/EndToEnd.xcresult").mkdir(parents=True)

@@ -47,6 +47,34 @@ final class GameTests: XCTestCase {
         try await settle(game)
     }
 
+    func testHomeControlsRespectHorizontalSafeArea() async throws {
+        let (game, _) = try await makeGame()
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = try XCTUnwrap(scene.windows.first)
+        let original = window.rootViewController
+        defer { window.rootViewController = original }
+        let home = HomeViewController(game: game)
+        window.rootViewController = ChessNavigationController(rootViewController: home)
+        window.makeKeyAndVisible()
+        window.layoutIfNeeded()
+        home.view.layoutIfNeeded()
+        print("HOME native safe area \(home.view.safeAreaInsets), bounds \(home.view.bounds)")
+        for insets in [UIEdgeInsets.zero, UIEdgeInsets(top: 0, left: 60, bottom: 0, right: 80)] {
+            home.additionalSafeAreaInsets = insets
+            home.view.setNeedsLayout()
+            window.layoutIfNeeded()
+            home.view.layoutIfNeeded()
+            let safe = home.view.safeAreaLayoutGuide.layoutFrame
+            let buttons = descendants(of: home.view).compactMap { $0 as? UIButton }
+            XCTAssertFalse(buttons.isEmpty)
+            for button in buttons {
+                let frame = button.convert(button.bounds, to: home.view)
+                XCTAssertGreaterThanOrEqual(frame.minX, safe.minX, button.accessibilityLabel ?? "")
+                XCTAssertLessThanOrEqual(frame.maxX, safe.maxX, button.accessibilityLabel ?? "")
+            }
+        }
+    }
+
     func testGameToolbarOpensScopedSettingsAndAnchoredShareDirectly() async throws {
         let (game, _) = try await makeGame()
         game.newGame()
