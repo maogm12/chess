@@ -35,10 +35,22 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   moves, ratings, outcomes, and timers. Keep migrations compatible with existing
   saves and preserve the player's color and history.
 - Evidence: `README.md` (history tree, legacy saves, and Verification).
+- Maintenance, 2026-10-17: `SavedGame.lastPlayerMoveIndex` and
+  `playerMoved(at:)` duplicated the FEN-start-color and move-parity rule.
+  Undo now calls `playerMoved(at:)`, the same predicate used by redo.
+  Its argument is a one-based ply, so convert a stored move index with `+ 1`.
+  Keep this conversion at the caller; do not change saved move indices or
+  assume that the first move belongs to White or to the human player.
 - Verification: `testNestedForksAndAncestorForksFormATreeWithoutMerging`,
   `testNestedBranchSwipeAndUndoPreserveOriginalLines`, and
   `testLegacyManualSavesBecomeBotPuzzlesWithoutLosingHistory` in
-  `Tests/GameTests.swift`.
+  `Tests/GameTests.swift`. For the shared player-move predicate, retain
+  `testBlackStartingPuzzlesReplyAndUndoToPlayerDecision`,
+  `testRedoSelectedMoveOnlyAllowsHumanAndRewindsBeforeIt`, and
+  `testRedoCanReplaceTheHumansCheckmatingMove`; these passed locally on
+  iOS 27.1 during the 2026-10-17 maintenance run. The engine suite also passed.
+  That full iOS run passed 42/48 tests, with six UI failures; do not count the
+  successful player-move tests as a full regression pass.
 
 ## Keep test scripts compatible with the macOS system Bash
 
