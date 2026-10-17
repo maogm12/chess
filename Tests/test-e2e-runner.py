@@ -56,7 +56,7 @@ elif args[:2] == ["simctl", "create"]:
     print("11111111-1111-1111-1111-111111111111")
 elif args[:2] == ["simctl", "bootstatus"]:
     assert args[2:] == ["11111111-1111-1111-1111-111111111111", "-b"], args
-    print("Simulator boot status")
+    print(os.environ.get("E2E_STUB_BOOT_STATUS", "Simulator boot status"))
     sys.exit(int(os.environ.get("E2E_STUB_BOOT_EXIT", "0")))
 elif args[:2] not in (["simctl", "shutdown"], ["simctl", "delete"]):
     sys.exit("Unexpected simctl command")
@@ -123,6 +123,14 @@ else:
         self.assertEqual(result.returncode, 43, result.stderr)
         self.assert_cleanup()
         self.assertIn("Simulator boot status", (self.root / "results/boot.log").read_text())
+        self.assertFalse(any(command[:2] == ["xcodebuild", "test"] for command in self.commands()))
+
+    def test_migration_failure_with_zero_exit_does_not_start_tests(self):
+        status = "Status=3, isTerminal=YES\n\tData Migration Failed"
+        result = self.run_script(E2E_STUB_BOOT_STATUS=status)
+        self.assertNotEqual(result.returncode, 0)
+        self.assert_cleanup()
+        self.assertIn("Data Migration Failed", (self.root / "results/boot.log").read_text())
         self.assertFalse(any(command[:2] == ["xcodebuild", "test"] for command in self.commands()))
 
     def test_xcodebuild_failure_keeps_evidence_and_propagates_exit_code(self):

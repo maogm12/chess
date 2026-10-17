@@ -389,9 +389,14 @@ this file is for reusable project knowledge.
   `build/e2e-validation-20261017/rotation-clean.xcresult` and
   `rotation-diagnostic.xcresult`.
 - Startup follow-up: The runner now waits for `simctl bootstatus -b` before
-  XCTest and retains `boot.log`. All ten runner contract tests passed, including
+  XCTest and retains `boot.log`. All eleven runner contract tests passed, including
   startup ordering and cleanup/failure propagation when boot fails. These
-  subprocess checks do not establish simulator stability. An iPad / iOS 27.0
+  subprocess checks do not establish simulator stability. On 2026-10-17,
+  `bootstatus` printed terminal `Data Migration Failed` but returned zero.
+  Check this explicit failure in the retained log before starting XCTest;
+  exit status alone did not establish readiness. The new regression failed
+  before the guard and passed afterward, including simulator cleanup and
+  verification that XCTest never starts. An iPad / iOS 27.0
   comparison was canceled after app launch exceeded the four-minute test
   allowance, before it reached the rotation assertion. A separate launch probe
   then received `SBMainWorkspace` Busy / application failed preflight checks,

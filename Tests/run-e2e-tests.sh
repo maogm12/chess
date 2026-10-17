@@ -66,6 +66,13 @@ printf '%s\n' "$simulator_id" > "$output_dir/simulator-id.txt"
 
 # Keep simulator boot and data migration outside each UI test's time allowance.
 xcrun simctl bootstatus "$simulator_id" -b 2>&1 | tee "$output_dir/boot.log"
+# Some simctl versions return zero even for terminal data-migration failure.
+case "$(< "$output_dir/boot.log")" in
+  *"Data Migration Failed"*)
+    echo "Simulator data migration failed; see $output_dir/boot.log." >&2
+    exit 1
+    ;;
+esac
 
 # No retries: a flaky UI path must fail its PR check, with the original evidence.
 xcodebuild test \
