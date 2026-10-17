@@ -49,6 +49,8 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
     private var renderedBranches: [GameBranch] = []
     private var renderedBranchID: UUID?
     private var renderedRecordID: UUID?
+    private var renderedReviewing = false
+    private var pendingScrollPly: Int?
     private var pendingBranchPage: (ply: Int, direction: Int)?
     private struct FeedbackPosition {
         let gameID: UUID
@@ -195,10 +197,19 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         let controlsX = safe.midX - controlsWidth / 2
         actions.frame = CGRect(x: controlsX, y: bottom, width: controlsWidth, height: 56)
         newGame.frame = actions.frame
+        if let ply = pendingScrollPly {
+            pendingScrollPly = nil
+            movesTable.layoutIfNeeded()
+            if let row = timeline.firstIndex(where: { $0.contains(ply: ply) }) {
+                movesTable.scrollToRow(at: IndexPath(row: row, section: 0), at: .bottom, animated: false)
+            }
+        }
     }
 
     override func updateView() {
         guard isViewLoaded else { return }
+        let returningToPlay = renderedReviewing && !game.reviewing
+        renderedReviewing = game.reviewing
         if game.promotions.isEmpty, let picker = promotionPicker {
             promotionPicker = nil
             picker.dismiss(animated: false)
@@ -256,6 +267,7 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
             renderedRecordID = game.record?.id
             let nextTimeline = makeTimeline()
             if switchingBranch {
+                pendingScrollPly = nil
                 replaceContinuation(from: oldTimeline, to: nextTimeline, notation: oldNotation, keeping: oldOffset)
                 if let page = pendingBranchPage {
                     animateContinuation(below: page.ply, direction: page.direction)
@@ -267,10 +279,13 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
                 movesTable.reloadData()
             }
             if changedMoves && !switchingBranch && !notation.isEmpty {
-                movesTable.layoutIfNeeded()
-                let row = timeline.firstIndex { $0.contains(ply: ply) } ?? 0
-                movesTable.scrollToRow(at: IndexPath(row: row, section: 0), at: .bottom, animated: false)
+                pendingScrollPly = ply
             }
+        }
+        // Latest restores live controls, so reveal the tip after the new layout.
+        if returningToPlay && !notation.isEmpty {
+            movesTable.contentInset.bottom = 0
+            pendingScrollPly = ply
         }
         if notation.isEmpty && !game.gameOver && game.snapshot?.result == "*" {
             let empty = chessLabel("The board is yours.\nTap a piece, then a highlighted square.", size: 13, color: ForkChessTheme.slate)

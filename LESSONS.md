@@ -301,6 +301,28 @@ this file is for reusable project knowledge.
   document the unselected and selected layouts; frame assertions establish
   layout stability that still images alone cannot prove.
 
+## Reveal the history tip after returning from review
+
+- Date and symptom: On 2026-10-17, the nested-branch E2E test returned to the
+  latest board position, but the history still showed its first move instead
+  of the selected line's tip.
+- Cause: `GameViewController.updateView` scrolled only when notation changed.
+  Latest changes the cursor and the layout without changing notation. Scrolling
+  before laying out the restored live controls also uses the old table size.
+- Prevention: Reveal the current ply after layout when moves change or review
+  returns to play. Clear branch-preservation padding when returning to play,
+  while preserving the scroll offset when switching branches during review.
+- Evidence: `GameViewController` (`pendingScrollPly`, `updateView`,
+  `viewDidLayoutSubviews`) and
+  `GameTests.testLatestRevealsTipAfterReviewLayoutChanges`.
+- Verification: On iPhone Duo / iOS 27.1, the regression failed against the
+  original code because the final row ended at y=320 while the table ended
+  at y=109. It passed after the fix, along with the existing nested-branch,
+  historical-search invalidation, and home-safe-area regressions (4/4).
+  The corrected nested-branch E2E also passed through real swipes, page dots,
+  the branch menu, selected-line PGN sharing, and a tappable final move after
+  Latest. Before/after results are in `build/e2e-fixes-20261017`.
+
 ## Refresh derived drawing state when system appearance changes
 
 - Date and symptom: On 2026-10-14, adding dark appearance exposed fixed white
@@ -356,71 +378,69 @@ this file is for reusable project knowledge.
   its simulator tools; do not change app behavior to mask the environment failure.
 - Evidence: `Tests/run-e2e-tests.sh`, the `ForkChessE2E` scheme, and the local
   `build/e2e-local/build.log` / `test.log` diagnostics.
-- Verification: The app, UI-test runner, and default integration-test target
-  compiled; simulator execution was blocked by the stated version mismatch.
-  The Release build passed, and binary inspection confirmed that UI-fixture
-  launch keys are excluded. The standalone Arasan regression suite and six runner
-  isolation/failure tests passed. UI gestures and system sheets were not
-  runtime-verified in this environment.
-- Follow-up on 2026-10-17: Simulator destinations became available. The first
-  actual iPhone run failed while waiting for Settings. On iPhone 17 Pro / iOS
-  27.0, Settings opened, but tapping its native side menu stalled in XCTest
-  quiescence and remote accessibility queries, exceeding the 240-second test
-  allowance. Restarting the user CoreSimulator service did not resolve this
-  menu failure. Its underlying cause is not established; the continuity-display
-  warning also occurs on an ordinary iPhone and does not establish a device fault.
-  The iPad mini / iOS 27.0 home/navigation smoke test passed. Keep full E2E
-  validation unverified until the suite completes. Logs are in
-  `build/e2e-phone-restarted-20261017/e2e.log` and
-  `build/e2e-ipad-smoke-20261017/e2e.log`.
-- Later verification on 2026-10-17: Eighteen distinct E2E cases passed on
-  iPhone Duo / iOS 27.1 after fixing the concrete safe-area, adaptive navigation,
-  and test synchronization issues described below. This is evidence from
-  incremental batches, not a complete passing suite. The isolated landscape
-  case still failed on two separate iOS 27.1 devices: XCTest reported the device
-  orientation change, while the app window stayed 466 by 678 points. A temporary
-  in-process diagnostic using UIKit's public `requestGeometryUpdate` successfully
-  changed the same app window to 678 by 466 points. This distinguishes explicit
-  scene geometry requests from XCTest's physical-orientation simulation; it
-  does not establish the underlying system cause. Keep the E2E rotation
-  assertion and its failure evidence rather than forcing app orientation or
-  claiming that compiling, an older runtime, or the diagnostic validates it.
-  The diagnostic was removed after execution. Results are in
-  `build/e2e-validation-20261017/rotation-clean.xcresult` and
-  `rotation-diagnostic.xcresult`.
-- Startup follow-up: The runner now waits for `simctl bootstatus -b` before
-  XCTest and retains `boot.log`. All eleven runner contract tests passed, including
-  startup ordering and cleanup/failure propagation when boot fails. These
-  subprocess checks do not establish simulator stability. On 2026-10-17,
-  `bootstatus` printed terminal `Data Migration Failed` but returned zero.
-  Check this explicit failure in the retained log before starting XCTest;
-  exit status alone did not establish readiness. The new regression failed
-  before the guard and passed afterward, including simulator cleanup and
-  verification that XCTest never starts. An iPad / iOS 27.0
-  comparison was canceled after app launch exceeded the four-minute test
-  allowance, before it reached the rotation assertion. A separate launch probe
-  then received `SBMainWorkspace` Busy / application failed preflight checks,
-  and the simulator UI tool timed out creating a remote automation session.
-  Keep this startup failure separate from the iPhone rotation assertion failure.
-  See `build/e2e-validation-20261017/ipad-rotation.xcresult` and
-  `ipad-launch-probe.log`.
+- Runtime verification on 2026-10-17: Simulator destinations became available.
+  Thirty-one distinct E2E cases passed on iPhone Duo / iOS 27.1 across incremental
+  batches after the app and test fixes documented here. This is not a complete
+  passing suite. The landscape case still failed on two separate devices:
+  XCTest acknowledged rotation, but the app window stayed 466 by 678 points.
+  Public `devicectl orientation set` also acknowledged different orientations
+  while an immediate `get` returned portrait. A temporary in-process diagnostic
+  using UIKit's public `requestGeometryUpdate` changed the same window to
+  678 by 466 points. These observations distinguish scene geometry requests
+  from simulated physical orientation; the underlying cause is not established.
+  Keep the rotation assertion and failure evidence. The diagnostic was removed.
+  Results are in `build/e2e-validation-20261017` and `build/e2e-fixes-20261017`.
+- Startup verification: Wait for `simctl bootstatus -b` and retain `boot.log`.
+  On iOS 27.1 it reported terminal `Data Migration Failed` with exit zero, even
+  after a full device restart. A guard based only on that text was also wrong:
+  `bootstatus -d` showed all 35 migration plugins succeeded, and the guest log
+  said migration was unnecessary. On this contradictory summary, retain the
+  plugin details in `migration.log` and require a nonempty set of successful
+  results. Reject any failed, missing, or unreadable details before XCTest.
+  All 14 runner contract tests passed, including the contradictory summary,
+  individual plugin failures, command errors, cleanup and failure propagation.
+  The successful-details and command-error regressions failed before this fix.
+  These subprocess checks do not establish simulator UI stability.
 
-## Cancel iPad action sheets by tapping outside their popover
+## Account for automation time when checking timer pauses
+
+- Date and symptom: On 2026-10-17, the background timer E2E test first failed
+  because XCTest's Home press left the iPhone Duo app in the foreground.
+  Switching to Settings produced the required real background state. The
+  off-screen/relaunch assertion then failed because navigation and foreground
+  accessibility queries consumed more than its fixed five-second allowance.
+- Prevention: Verify the actual background state after activating another app.
+  Measure elapsed time monotonically, and exclude the explicit inactive interval
+  from the permitted countdown loss. Check that restoration never increases
+  remaining time. Do not replace pause checks with a larger arbitrary tolerance.
+- Evidence: `ChessUITests.testTimerPausesAwayBackgroundAndRestores`,
+  `SceneDelegate` lifecycle callbacks, and the `TIMER` measurements in
+  `build/e2e-fixes-20261017/phone-timer-rotation.log`.
+- Verification: The real-app E2E passed on iOS 27.1 through an eight-second
+  background interval, an eight-second off-screen interval and relaunch.
+  Remaining time changed from 117 to 114 to 107 seconds, within the measured
+  transition budgets. Timer expiry and continued play also passed.
+
+## Cancel adaptive action sheets by tapping outside their popover
 
 - Date and symptom: On 2026-10-17, the new white-game E2E test completed hints,
   moves and undo, then failed to find Cancel in the iPad resignation sheet.
 - Cause: UIKit omits an action sheet's cancel row when presenting it as an
-  anchored iPad popover. The failure hierarchy contained only the Resign action.
+  anchored popover. The failure hierarchy contained only the Resign action.
   A first outside-tap attempt found the alert's own navigation bar and tapped
-  inside the popover instead.
-- Prevention: Use the actual iPhone Cancel action, and tap outside the anchored
-  popover on iPad using the app's screen coordinates. Do not assume that an
-  unscoped navigation-bar query identifies the underlying page.
+  inside the popover instead. The same missing-Cancel presentation was later
+  observed on iPhone Duo / iOS 27.1.
+- Prevention: Use Cancel when the actual presentation contains it; otherwise,
+  tap outside the anchored popover using the app's screen coordinates.
+  Choose from the observed controls rather than the device idiom.
+  Do not assume that an unscoped navigation-bar query identifies the underlying page.
 - Evidence: `ChessUITests.testWhiteGameLegalInputHintUndoAndResign` and
   `ChessUITestCase.cancelActionSheet(titled:)` in `Tests/UITests`.
 - Verification: The corrected test passed on iPad mini / iOS 27.0, including
   cancel, confirmed resignation and starting another game. Its result is
-  `build/e2e-validation-20261017/ipad-white.xcresult`.
+  `build/e2e-validation-20261017/ipad-white.xcresult`. The adaptive control check
+  also passed the full White-game E2E on iPhone Duo / iOS 27.1 in
+  `build/e2e-fixes-20261017/phone-corrected.xcresult`.
 
 ## Keep home controls inside the horizontal safe area
 

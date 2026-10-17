@@ -140,7 +140,8 @@ final class ChessUITests: ChessUITestCase {
         XCTAssertFalse(pgn.contains("Nf3"))
         tap(app.buttons["return-to-latest"])
         waitEnabled(app.buttons["Hint"])
-        XCTAssertTrue(move(6).exists)
+        waitEnabled(move(6))
+        capture("Latest branch tip")
     }
 
     func testEmptyBranchSwipeDoesNotNavigateAway() throws {
@@ -604,32 +605,53 @@ final class ChessUITests: ChessUITestCase {
 
     func testTimerPausesAwayBackgroundAndRestores() throws {
         try launch(games: [LibraryFixture.game(fen: "7k/8/8/8/8/8/8/KR6 w - - 0 1", seconds: 120)])
+        let opening = ProcessInfo.processInfo.systemUptime
         openPuzzle()
         waitEnabled(app.buttons["Hint"])
         let before = timerSeconds()
-        XCTAssertGreaterThan(before, 105)
+        let openingBudget = ProcessInfo.processInfo.systemUptime - opening
+        XCTAssertGreaterThan(before, 0)
+        XCTAssertGreaterThanOrEqual(Double(before), 120 - openingBudget - 1)
+        XCTAssertLessThanOrEqual(before, 120)
         wait({ self.timerSeconds() < before }, "running countdown")
         let beforeBackground = timerSeconds()
-        XCUIDevice.shared.press(.home)
+        let backgroundObservation = ProcessInfo.processInfo.systemUptime
+        // Switching to a real app also works on simulators where Home is a no-op.
+        XCUIApplication(bundleIdentifier: "com.apple.Preferences").activate()
         wait({ self.app.state == .runningBackground || self.app.state == .runningBackgroundSuspended },
              "app backgrounded", timeout: 5)
         // A bounded background interval establishes that the countdown is paused.
         let background = XCTestExpectation(description: "App stays in the background")
         background.isInverted = true
+        let backgroundStart = ProcessInfo.processInfo.systemUptime
         wait(for: [background], timeout: 8)
+        let backgroundInterval = ProcessInfo.processInfo.systemUptime - backgroundStart
         app.activate()
         waitEnabled(app.buttons["Hint"])
-        XCTAssertGreaterThan(timerSeconds(), beforeBackground - 6)
+        let afterBackground = timerSeconds()
+        // Budget transition/query latency, excluding the measured inactive interval.
+        let foregroundBudget = ProcessInfo.processInfo.systemUptime - backgroundObservation - backgroundInterval
+        print("TIMER background: \(beforeBackground) -> \(afterBackground), foreground budget \(foregroundBudget)s, paused \(backgroundInterval)s")
+        XCTAssertGreaterThanOrEqual(Double(afterBackground), Double(beforeBackground) - foregroundBudget - 1,
+                                    "The measured background interval must not consume practice time")
+        XCTAssertLessThanOrEqual(afterBackground, beforeBackground)
         let beforeAway = timerSeconds()
+        let awayObservation = ProcessInfo.processInfo.systemUptime
         back(to: "Puzzle")
         let away = XCTestExpectation(description: "Practice stays off screen")
         away.isInverted = true
+        let awayStart = ProcessInfo.processInfo.systemUptime
         wait(for: [away], timeout: 8)
+        let awayInterval = ProcessInfo.processInfo.systemUptime - awayStart
         relaunch()
         openPuzzle()
         waitEnabled(app.buttons["Hint"])
-        XCTAssertGreaterThan(timerSeconds(), beforeAway - 5)
-        XCTAssertLessThanOrEqual(timerSeconds(), before)
+        let restored = timerSeconds()
+        let visibleElapsed = ProcessInfo.processInfo.systemUptime - awayObservation - awayInterval
+        print("TIMER off screen: \(beforeAway) -> \(restored), foreground budget \(visibleElapsed)s, paused \(awayInterval)s")
+        XCTAssertGreaterThanOrEqual(Double(restored), Double(beforeAway) - visibleElapsed - 1,
+                                    "The measured off-screen interval must not consume practice time")
+        XCTAssertLessThanOrEqual(restored, beforeAway)
         capture("Restored timer")
     }
 
@@ -697,6 +719,7 @@ final class ChessUITests: ChessUITestCase {
         try launch(games: [LibraryFixture.tree()])
         openPuzzle()
         waitEnabled(app.buttons["Hint"])
+        wait({ self.app.frame.height > self.app.frame.width }, "portrait before rotation")
         XCUIDevice.shared.orientation = .landscapeRight
         wait({ self.app.frame.width > self.app.frame.height }, "landscape")
         waitEnabled(app.buttons["Hint"])

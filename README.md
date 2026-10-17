@@ -210,6 +210,11 @@ simulator. Verbose system-wide diagnostics are disabled; XCTest results and the
 suite's explicit screenshots and failure hierarchies remain enabled.
 The runner waits for simulator boot and data migration before starting XCTest,
 and retains this separate startup log as `boot.log`.
+If the boot summary reports a migration failure, it also retains `migration.log`
+and checks every reported migration plugin. It continues only when those details
+are present and every plugin succeeded; failed or unverified migration stops the
+run before XCTest. This handles simulator versions whose summary contradicts
+their successful plugin results.
 CI pins `E2E_IOS_VERSION=26.5` to match Xcode 26.6. This keeps a newer installed
 runtime from being selected by an older Xcode. Set the same variable locally to
 reproduce CI; without it, the script selects the newest runtime for the device

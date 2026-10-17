@@ -195,11 +195,11 @@ class ChessUITestCase: XCTestCase {
 
     func cancelActionSheet(titled title: String) {
         wait({ self.app.staticTexts[title].exists }, "action sheet \(title)")
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            // UIKit omits the cancel row in an iPad action-sheet popover.
+        let cancel = app.buttons["Cancel"]
+        if cancel.exists { tap(cancel) }
+        else {
+            // Adaptive popovers omit Cancel on iPad and some iPhone layouts.
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.2)).tap()
-        } else {
-            tap(app.buttons["Cancel"])
         }
         wait({ !self.app.staticTexts[title].exists }, "action sheet dismissed")
     }

@@ -66,11 +66,22 @@ printf '%s\n' "$simulator_id" > "$output_dir/simulator-id.txt"
 
 # Keep simulator boot and data migration outside each UI test's time allowance.
 xcrun simctl bootstatus "$simulator_id" -b 2>&1 | tee "$output_dir/boot.log"
-# Some simctl versions return zero even for terminal data-migration failure.
+# The boot summary can disagree with the migration plugin results.
 case "$(< "$output_dir/boot.log")" in
   *"Data Migration Failed"*)
-    echo "Simulator data migration failed; see $output_dir/boot.log." >&2
-    exit 1
+    xcrun simctl bootstatus "$simulator_id" -d 2>&1 | tee "$output_dir/migration.log"
+    python3 - "$output_dir/migration.log" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+details = Path(sys.argv[1]).read_text()
+plugins = re.findall(r"^\s*[\w.-]+\s*:\s*duration:.*$", details, re.MULTILINE)
+if not plugins or any(not re.search(r",\s*status:\s*success\s*$", line) for line in plugins):
+    sys.exit(f"Simulator migration failed or is unverified; see {sys.argv[1]}.")
+print(f"Boot summary reported failure, but all {len(plugins)} migration plugins succeeded.",
+      file=sys.stderr)
+PY
     ;;
 esac
 
