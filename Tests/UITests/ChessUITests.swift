@@ -14,7 +14,7 @@ final class ChessUITests: ChessUITestCase {
         XCTAssertTrue(app.staticTexts["Your games live here"].exists)
         capture("Empty history")
         back(to: "Home")
-        tap(app.buttons["Puzzle"])
+        openPuzzleLibrary()
         XCTAssertEqual(app.collectionViews.cells.count, 1)
         capture("Empty puzzle library")
         back(to: "Home")
@@ -164,7 +164,7 @@ final class ChessUITests: ChessUITestCase {
 
     func testPuzzleEditorValidationPaletteEraserClearAndSave() throws {
         try launch()
-        tap(app.buttons["Puzzle"])
+        openPuzzleLibrary()
         tap(app.collectionViews.cells.firstMatch)
         XCTAssertTrue(app.navigationBars["New puzzle"].exists)
         XCTAssertFalse(app.buttons["save-puzzle"].isEnabled)
@@ -208,7 +208,7 @@ final class ChessUITests: ChessUITestCase {
 
     func testBlackPuzzleEditorFlipsAndNavigationBarAdd() throws {
         try launch()
-        tap(app.buttons["Puzzle"])
+        openPuzzleLibrary()
         tap(app.buttons["add-puzzle"])
         tap(app.segmentedControls.buttons["Black"])
         XCTAssertGreaterThan(element("setup-square-a8").frame.minY, element("setup-square-a1").frame.minY)
@@ -246,7 +246,7 @@ final class ChessUITests: ChessUITestCase {
 
     func testPuzzleContextShareAndDelete() throws {
         try launch(games: [LibraryFixture.game(fen: "7k/8/8/8/8/8/8/KR6 w - - 0 1")])
-        tap(app.buttons["Puzzle"])
+        openPuzzleLibrary()
         app.collectionViews.cells.element(boundBy: 1).press(forDuration: 1)
         let pgn = shareAndCopy(from: app.buttons["Share PGN"])
         XCTAssertTrue(pgn.contains("[FEN \"7k/8/8/8/8/8/8/KR6 w - - 0 1\"]"))
@@ -254,7 +254,7 @@ final class ChessUITests: ChessUITestCase {
         tap(app.buttons["Delete"])
         wait({ self.app.collectionViews.cells.count == 1 }, "puzzle deleted")
         relaunch()
-        tap(app.buttons["Puzzle"])
+        openPuzzleLibrary()
         XCTAssertEqual(app.collectionViews.cells.count, 1)
     }
 
@@ -746,7 +746,7 @@ final class ChessUITests: ChessUITestCase {
         openHistory()
         capture("\(appearance) History")
         back(to: "Home")
-        tap(app.buttons["Puzzle"])
+        openPuzzleLibrary()
         capture("\(appearance) Puzzle library")
         tap(app.buttons["add-puzzle"])
         capture("\(appearance) Puzzle editor")

@@ -550,3 +550,26 @@ this file is for reusable project knowledge.
   iPhone job passed all 32 E2E methods. The follow-up run exposed the clipped
   switch and stale-frame cases on both device families, while preserving the
   exact settings assertions.
+
+## Wait for a popped navigation bar before tapping underlying Home controls
+
+- Date and symptom: On 2026-10-17, PR #22's full iPad E2E run failed
+  `testLightPagesAndPickers`: after History returned to Home, XCTest tapped the
+  center of the visible Puzzle button, but the app stayed on Home.
+- Cause: `ChessUITestCase.back(to:)` waited only for Home's underlying controls,
+  which can report enabled and hittable while History is still being popped.
+  The synthesized tap could therefore land before the outgoing controller had
+  stopped covering Home. The corresponding Dark test and the separate Home
+  navigation test passed, so the page and button itself remained functional.
+- Prevention: Before exposing a destination to subsequent test actions, wait
+  for every pre-pop navigation bar identifier to disappear. When returning to
+  Home, additionally require its hidden navigation bar and adaptive Back control
+  to be gone. After tapping Puzzle, wait for the Puzzle navigation bar before
+  interacting with its cells or Add action.
+- Evidence: CI run `39066008754`, `testLightPagesAndPickers`, the exported
+  accessibility hierarchy, screenshot, and synthesized event showing a tap at
+  the Puzzle button's center while navigation remained on Home.
+- Verification: `Tests/test-e2e-runner.py` passed all 19 tests and the E2E target
+  built successfully after the synchronization change. The complete iPhone/iPad
+  PR matrix is the authoritative runtime verification; do not treat compilation
+  alone as proof that the navigation race is gone.

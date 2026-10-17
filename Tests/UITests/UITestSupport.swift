@@ -160,9 +160,14 @@ class ChessUITestCase: XCTestCase {
     }
 
     func openPuzzle() {
-        tap(app.buttons["Puzzle"])
+        openPuzzleLibrary()
         tap(app.collectionViews.cells.element(boundBy: 1))
         wait({ self.square("a1").exists }, "puzzle board")
+    }
+
+    func openPuzzleLibrary() {
+        tap(app.buttons["Puzzle"])
+        wait({ self.app.navigationBars["Puzzle"].exists }, "Puzzle library")
     }
 
     func openHistory() {
@@ -183,10 +188,19 @@ class ChessUITestCase: XCTestCase {
     func back(to title: String) {
         let navigationBack = app.navigationBars.buttons[title]
         let toolbarBack = app.toolbars.buttons["BackButton"]
+        let departingBars = app.navigationBars.allElementsBoundByIndex
+            .map(\.identifier)
+            .filter { !$0.isEmpty && $0 != title }
         // UIKit can move navigation actions into an adaptive side toolbar.
         wait({ navigationBack.exists || toolbarBack.exists }, "back control for \(title)")
         tap(navigationBack.exists ? navigationBack : toolbarBack)
+        // Home exists underneath the pushed controller, so its controls can
+        // report ready before the pop animation has exposed them to touches.
+        wait({ departingBars.allSatisfy { !self.app.navigationBars[$0].exists } },
+             "departing navigation bar")
         if title == "Home" {
+            wait({ self.app.navigationBars.count == 0 && !toolbarBack.exists },
+                 "Home navigation complete")
             waitEnabled(app.buttons["Start new game"])
         } else {
             wait({ self.app.navigationBars[title].exists }, "returned to \(title)")
