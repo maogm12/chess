@@ -177,8 +177,7 @@ struct SavedGame: Codable, Identifiable, Equatable {
     }
 
     var lastPlayerMoveIndex: Int? {
-        let startsWhite = ChessPosition.whiteToMove(in: baseFEN)
-        return moves.indices.last { (startsWhite == $0.isMultiple(of: 2)) == playerWhite }
+        moves.indices.last { playerMoved(at: $0 + 1) }
     }
 
     func playerMoved(at ply: Int) -> Bool {
