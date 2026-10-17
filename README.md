@@ -211,11 +211,11 @@ suite's explicit screenshots and failure hierarchies remain enabled.
 The runner waits for simulator boot and data migration before starting XCTest,
 and retains this separate startup log as `boot.log`.
 It also always retains the detailed plugin results as `migration.log` and
-continues only when those details are present and every plugin succeeded.
-The boot summary alone is insufficient: some simulator versions report completion
-while migration is still pending, while others report failure even though every
-plugin succeeded. Incomplete, failed, or unverified migration stops the run before
-XCTest.
+continues only when those details are present and every plugin succeeded. Pending
+or running plugins are polled with a bounded deadline. The boot summary alone is
+insufficient: some simulator versions report completion while migration is still
+pending, while others report failure even though every plugin succeeded. Incomplete,
+failed, or unverified migration stops the run before XCTest.
 CI pins `E2E_IOS_VERSION=26.5` to match Xcode 26.6. This keeps a newer installed
 runtime from being selected by an older Xcode. Set the same variable locally to
 reproduce CI; without it, the script selects the newest runtime for the device

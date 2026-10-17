@@ -60,9 +60,16 @@ elif args[:2] == ["simctl", "bootstatus"]:
         print(os.environ.get("E2E_STUB_BOOT_STATUS", "Simulator boot status"))
         sys.exit(int(os.environ.get("E2E_STUB_BOOT_EXIT", "0")))
     assert args[3:] == ["-d"], args
-    print(os.environ.get(
-        "E2E_STUB_MIGRATION_DETAILS",
-        "com.apple.migration : duration: 0.1, status: success"))
+    sequence = json.loads(os.environ.get("E2E_STUB_MIGRATION_SEQUENCE", "[]"))
+    counter = Path(os.environ["E2E_RUNNER_TRACE"] + ".migration")
+    attempt = int(counter.read_text()) if counter.exists() else 0
+    if sequence:
+        print(sequence[min(attempt, len(sequence) - 1)])
+        counter.write_text(str(attempt + 1))
+    else:
+        print(os.environ.get(
+            "E2E_STUB_MIGRATION_DETAILS",
+            "com.apple.migration : duration: 0.1, status: success"))
     sys.exit(int(os.environ.get("E2E_STUB_DETAILS_EXIT", "0")))
 elif args[:2] not in (["simctl", "shutdown"], ["simctl", "delete"]):
     sys.exit("Unexpected simctl command")
@@ -145,7 +152,8 @@ else:
     def test_premature_boot_completion_with_pending_migration_stops_testing(self):
         details = ("com.apple.first : duration: 0.1, status: success\n"
                    "com.apple.second : duration: 0.0, status: pending\n")
-        result = self.run_script(E2E_STUB_MIGRATION_DETAILS=details)
+        result = self.run_script(E2E_STUB_MIGRATION_DETAILS=details,
+                                 E2E_MIGRATION_TIMEOUT_SECONDS="0")
         self.assertNotEqual(result.returncode, 0)
         self.assert_cleanup()
         self.assertIn("status: pending", (self.root / "results/migration.log").read_text())
@@ -156,6 +164,18 @@ else:
         self.assertNotEqual(result.returncode, 0)
         self.assert_cleanup()
         self.assertFalse(any(command[:2] == ["xcodebuild", "test"] for command in self.commands()))
+
+    def test_pending_migration_is_polled_until_success(self):
+        pending = "com.apple.migration : duration: 0.0, status: running"
+        success = "com.apple.migration : duration: 0.1, status: success"
+        result = self.run_script(
+            E2E_STUB_MIGRATION_SEQUENCE=json.dumps([pending, success]),
+            E2E_MIGRATION_POLL_SECONDS="0.01",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assert_cleanup()
+        self.assertIn(success, (self.root / "results/migration.log").read_text())
+        self.assertTrue(any(command[:2] == ["xcodebuild", "test"] for command in self.commands()))
 
     def test_inconsistent_boot_summary_requires_successful_plugin_details(self):
         details = ("Data migration details:\n"
