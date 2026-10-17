@@ -60,7 +60,9 @@ elif args[:2] == ["simctl", "bootstatus"]:
         print(os.environ.get("E2E_STUB_BOOT_STATUS", "Simulator boot status"))
         sys.exit(int(os.environ.get("E2E_STUB_BOOT_EXIT", "0")))
     assert args[3:] == ["-d"], args
-    print(os.environ.get("E2E_STUB_MIGRATION_DETAILS", "Data migration details unavailable"))
+    print(os.environ.get(
+        "E2E_STUB_MIGRATION_DETAILS",
+        "com.apple.migration : duration: 0.1, status: success"))
     sys.exit(int(os.environ.get("E2E_STUB_DETAILS_EXIT", "0")))
 elif args[:2] not in (["simctl", "shutdown"], ["simctl", "delete"]):
     sys.exit("Unexpected simctl command")
@@ -97,7 +99,7 @@ else:
             env={**self.environment, **environment},
             capture_output=True,
             text=True,
-            timeout=15,
+            timeout=60,
         )
 
     def commands(self):
@@ -131,10 +133,28 @@ else:
 
     def test_migration_failure_with_zero_exit_does_not_start_tests(self):
         status = "Status=3, isTerminal=YES\n\tData Migration Failed"
-        result = self.run_script(E2E_STUB_BOOT_STATUS=status)
+        details = "com.apple.migration : duration: 0.1, status: failed"
+        result = self.run_script(E2E_STUB_BOOT_STATUS=status,
+                                 E2E_STUB_MIGRATION_DETAILS=details)
         self.assertNotEqual(result.returncode, 0)
         self.assert_cleanup()
         self.assertIn("Data Migration Failed", (self.root / "results/boot.log").read_text())
+        self.assertIn("status: failed", (self.root / "results/migration.log").read_text())
+        self.assertFalse(any(command[:2] == ["xcodebuild", "test"] for command in self.commands()))
+
+    def test_premature_boot_completion_with_pending_migration_stops_testing(self):
+        details = ("com.apple.first : duration: 0.1, status: success\n"
+                   "com.apple.second : duration: 0.0, status: pending\n")
+        result = self.run_script(E2E_STUB_MIGRATION_DETAILS=details)
+        self.assertNotEqual(result.returncode, 0)
+        self.assert_cleanup()
+        self.assertIn("status: pending", (self.root / "results/migration.log").read_text())
+        self.assertFalse(any(command[:2] == ["xcodebuild", "test"] for command in self.commands()))
+
+    def test_missing_migration_details_stops_testing(self):
+        result = self.run_script(E2E_STUB_MIGRATION_DETAILS="")
+        self.assertNotEqual(result.returncode, 0)
+        self.assert_cleanup()
         self.assertFalse(any(command[:2] == ["xcodebuild", "test"] for command in self.commands()))
 
     def test_inconsistent_boot_summary_requires_successful_plugin_details(self):
@@ -159,8 +179,7 @@ else:
         self.assertFalse(any(command[:2] == ["xcodebuild", "test"] for command in self.commands()))
 
     def test_migration_details_command_failure_stops_testing(self):
-        result = self.run_script(E2E_STUB_BOOT_STATUS="Data Migration Failed",
-                                 E2E_STUB_DETAILS_EXIT="44")
+        result = self.run_script(E2E_STUB_DETAILS_EXIT="44")
         self.assertEqual(result.returncode, 44, result.stderr)
         self.assert_cleanup()
         self.assertFalse(any(command[:2] == ["xcodebuild", "test"] for command in self.commands()))

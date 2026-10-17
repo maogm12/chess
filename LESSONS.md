@@ -397,9 +397,12 @@ this file is for reusable project knowledge.
   said migration was unnecessary. On this contradictory summary, retain the
   plugin details in `migration.log` and require a nonempty set of successful
   results. Reject any failed, missing, or unreadable details before XCTest.
-  All 14 runner contract tests passed, including the contradictory summary,
+  In the opposite failure mode, a fresh iOS 27.0 simulator reported terminal
+  `Finished` while six migration plugins were still pending or running, and app
+  installation then stalled. Therefore, query `bootstatus -d` after every
+  terminal boot summary rather than only for a failure summary. All runner
+  contract tests pass, including contradictory and premature summaries,
   individual plugin failures, command errors, cleanup and failure propagation.
-  The successful-details and command-error regressions failed before this fix.
   These subprocess checks do not establish simulator UI stability.
 
 ## Account for automation time when checking timer pauses

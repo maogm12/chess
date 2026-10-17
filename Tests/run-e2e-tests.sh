@@ -66,24 +66,23 @@ printf '%s\n' "$simulator_id" > "$output_dir/simulator-id.txt"
 
 # Keep simulator boot and data migration outside each UI test's time allowance.
 xcrun simctl bootstatus "$simulator_id" -b 2>&1 | tee "$output_dir/boot.log"
-# The boot summary can disagree with the migration plugin results.
-case "$(< "$output_dir/boot.log")" in
-  *"Data Migration Failed"*)
-    xcrun simctl bootstatus "$simulator_id" -d 2>&1 | tee "$output_dir/migration.log"
-    python3 - "$output_dir/migration.log" <<'PY'
+# The boot summary can report completion while migration is still pending, or
+# report a failure even though the individual plugins succeeded.
+xcrun simctl bootstatus "$simulator_id" -d 2>&1 | tee "$output_dir/migration.log"
+python3 - "$output_dir/boot.log" "$output_dir/migration.log" <<'PY'
 from pathlib import Path
 import re
 import sys
 
-details = Path(sys.argv[1]).read_text()
+summary = Path(sys.argv[1]).read_text()
+details = Path(sys.argv[2]).read_text()
 plugins = re.findall(r"^\s*[\w.-]+\s*:\s*duration:.*$", details, re.MULTILINE)
 if not plugins or any(not re.search(r",\s*status:\s*success\s*$", line) for line in plugins):
-    sys.exit(f"Simulator migration failed or is unverified; see {sys.argv[1]}.")
-print(f"Boot summary reported failure, but all {len(plugins)} migration plugins succeeded.",
-      file=sys.stderr)
+    sys.exit(f"Simulator migration is incomplete or failed; see {sys.argv[2]}.")
+if "Data Migration Failed" in summary:
+    print(f"Boot summary reported failure, but all {len(plugins)} migration plugins succeeded.",
+          file=sys.stderr)
 PY
-    ;;
-esac
 
 # No retries: a flaky UI path must fail its PR check, with the original evidence.
 xcodebuild test \
