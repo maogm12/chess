@@ -139,6 +139,51 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   preservation through settings encoding. Native simulator captures show the
   actual opened menu; no empirical human rating calibration was performed.
 
+## Verify all consumers before removing old screen presentation helpers
+
+- Date and problem: On 2026-10-15, maintenance found `GameViewModel.status`,
+  `GameViewModel.lastMoveUCI`, and `SavedGame.homeDetail` had no consumers after
+  earlier interface changes. The removed status row and inline home history
+  had left their derived presentation code behind.
+- Cause: Screen changes removed callers without removing unused computed
+  properties. Their old names alone did not establish whether they were dead.
+- Prevention: Search app sources and tests for every candidate before removal.
+  Preserve helpers with other consumers: `SavedGame.homeOutcome` is still used
+  by `PuzzleTile.apply`, and `lastMoveSquares` still drives board highlights.
+  Removing unused display properties must not change Codable storage or the
+  state flags used by engine request invalidation.
+- Evidence: `ChessApp/GameViewModel.swift`, the `SavedGame` extension in
+  `ChessApp/UIKitSupport.swift`, and `ChessApp/PuzzleViewController.swift`.
+- Verification: The standalone engine suite passed (perft, legality, special
+  moves, results, draws and 24 engine plies). The simulator build and all 46
+  existing iOS integration tests passed with zero failures/skips on iPhone 17
+  Pro / iOS 26.5, including Puzzle tiles, history, highlights and search
+  invalidation. No new test was needed for removing unreferenced properties.
+
+## Derive exported PGN move numbers from the starting position
+
+- Date and symptom: On 2026-10-16, maintenance found that setup-position PGNs
+  always numbered the first saved move as `1.`. A Black-to-move puzzle at move
+  23 exported `1. Kh7 Rb2` rather than `23... Kh7 24. Rb2`.
+- Cause: `GameViewModel.pgn(for:)` numbered moves using the notation array index
+  alone, ignoring both the active color and fullmove number in `baseFEN`.
+- Prevention: Use the FEN active color to offset the starting half-move and
+  the sixth FEN field to seed the fullmove count. Prefix an opening Black move
+  with three periods; increment the count after Black moves. Use the selected
+  saved line's FEN and notation when exporting a history branch.
+- Evidence: `ChessApp/GameViewModel.swift` (`pgn(for:)`), and the PGN
+  specification sections 8.2.2.2 and 16.1.3.6:
+  https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm
+- Verification: Host-only checks compiling the actual export method reproduced
+  four failures before the fix and passed all six cases afterward. The standalone
+  engine suite passed, and the app plus test targets built for arm64 Simulator.
+  Full simulator execution is currently blocked by Xcode 27.1 requiring
+  CoreSimulator 1174.9.2 while 1171.7 is installed.
+  Two XCTest regressions cover normal starts, both setup colors, later move
+  numbers, empty games, and selected branches after persistence. Publish the
+  PR with this local limitation documented, and use the full CI suites to
+  verify runtime behavior before reporting regression success.
+
 ## Adding or updating a lesson
 
 Use a short descriptive heading and record:

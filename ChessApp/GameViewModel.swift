@@ -329,25 +329,10 @@ final class GameViewModel: ObservableObject {
             return BoardPiece(id: index, kind: kind, isWhite: kind.isUppercase)
         }
     }
-    var status: String {
-        if !ready { return "Preparing board…" }
-        if busy { return "Loading position…" }
-        if reviewing { return "" }
-        if isRating { return "Rating move…" }
-        if gameOver { return (active?.reason ?? "Game over") + " · " + (active?.result ?? "") }
-        if isHinting { return "Finding a hint…" }
-        if isThinking { return "Bot is thinking…" }
-        let side = whiteToMove ? "White" : "Black"
-        return (snapshot?.inCheck == true ? "Check · " : "") + side + " to move"
-    }
     var lastMoveSquares: Set<Int> {
         let line = reviewing ? Array((reviewGame?.moves ?? []).prefix(reviewPly)) : (active?.moves ?? [])
         guard let move = line.last else { return [] }
         return [squareIndex(String(move.prefix(2))), squareIndex(String(move.dropFirst(2).prefix(2)))]
-    }
-    var lastMoveUCI: String? {
-        let line = reviewing ? Array((reviewGame?.moves ?? []).prefix(reviewPly)) : (active?.moves ?? [])
-        return line.last
     }
     var legalTargets: Set<Int> {
         guard let selectedSquare, settings.showLegalMoves else { return [] }
@@ -710,8 +695,13 @@ final class GameViewModel: ObservableObject {
         var output = "[Event \"ForkChess practice\"]\n[Date \"\(date)\"]\n[White \"\(white)\"]\n[Black \"\(black)\"]\n[Result \"\(record.result)\"]\n"
         if record.baseFEN != Self.startFEN { output += "[SetUp \"1\"]\n[FEN \"\(record.baseFEN)\"]\n" }
         output += "\n"
+        let startingMove = max(1, Int(record.baseFEN.split(separator: " ").dropFirst(5).first ?? "") ?? 1)
+        let startingPly = ChessPosition.whiteToMove(in: record.baseFEN) ? 0 : 1
         for (i, move) in record.notation.enumerated() {
-            if i.isMultiple(of: 2) { output += "\(i / 2 + 1). " }
+            let ply = startingPly + i
+            let number = startingMove + ply / 2
+            if ply.isMultiple(of: 2) { output += "\(number). " }
+            else if i == 0 { output += "\(number)... " }
             output += move + " "
         }
         return output + record.result
