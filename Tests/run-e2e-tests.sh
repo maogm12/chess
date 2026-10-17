@@ -80,16 +80,26 @@ simulator, summary_path, details_path = sys.argv[1:]
 summary = Path(summary_path).read_text()
 timeout = float(os.environ.get("E2E_MIGRATION_TIMEOUT_SECONDS", "180"))
 poll_interval = float(os.environ.get("E2E_MIGRATION_POLL_SECONDS", "2"))
+status_timeout = float(os.environ.get("E2E_MIGRATION_STATUS_TIMEOUT_SECONDS", "30"))
 deadline = time.monotonic() + timeout
 
 while True:
     try:
         result = subprocess.run(
             ["xcrun", "simctl", "bootstatus", simulator, "-d"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, timeout=status_timeout,
         )
-    except subprocess.TimeoutExpired:
-        sys.exit(f"Timed out reading simulator migration details; see {details_path}.")
+    except subprocess.TimeoutExpired as error:
+        output = (error.stdout or "") + (error.stderr or "")
+        if isinstance(output, bytes):
+            output = output.decode(errors="replace")
+        Path(details_path).write_text(
+            output + f"\nMigration status read timed out after {status_timeout:g}s; retrying.\n"
+        )
+        if time.monotonic() >= deadline:
+            sys.exit(f"Simulator migration is incomplete; see {details_path}.")
+        time.sleep(min(poll_interval, deadline - time.monotonic()))
+        continue
     details = result.stdout + result.stderr
     Path(details_path).write_text(details)
     if result.returncode != 0:

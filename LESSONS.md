@@ -57,6 +57,27 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   Removing that apostrophe restored parsing. Run syntax and subprocess checks
   with `/bin/bash`, including after changes to embedded Python comments.
 
+## Retry stalled simulator status reads within the migration deadline
+
+- Date and symptom: On 2026-10-17, PR #22's iPhone E2E job booted the simulator,
+  then failed before XCTest because one `simctl bootstatus <device> -d` call
+  exceeded 30 seconds.
+- Cause: `Tests/run-e2e-tests.sh` treated a single `subprocess.TimeoutExpired`
+  as final even though its overall migration deadline still had time remaining.
+  CoreSimulator can stall a status query while finishing the boot, so one slow
+  read does not establish that a migration plugin failed.
+- Prevention: Preserve any partial status output, retry the status read until
+  the overall migration deadline, and still start XCTest only after every plugin
+  reports success. Keep the repeated-timeout test to prove the deadline remains
+  bounded.
+- Evidence: GitHub Actions run `39061692865`, job `117480800524`; its
+  `boot.log` ended with `Finished`, followed by
+  `Timed out reading simulator migration details`.
+- Verification: `python3 Tests/test-e2e-runner.py` passed all 19 runner tests on
+  2026-10-17, including a timed-out read followed by success and repeated
+  timeouts that stop before XCTest. The fresh iPhone and iPad PR jobs exercise
+  the updated startup path before the UI suite.
+
 ## Share FEN placement decoding while preserving engine piece identities
 
 - Date and problem: On 2026-10-14, maintenance found duplicate FEN rank/file
