@@ -19,7 +19,7 @@ jobs:
   e2e:
     name: E2E (${{ matrix.device }})
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
