@@ -35,10 +35,22 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   moves, ratings, outcomes, and timers. Keep migrations compatible with existing
   saves and preserve the player's color and history.
 - Evidence: `README.md` (history tree, legacy saves, and Verification).
+- Maintenance, 2026-10-17: `SavedGame.lastPlayerMoveIndex` and
+  `playerMoved(at:)` duplicated the FEN-start-color and move-parity rule.
+  Undo now calls `playerMoved(at:)`, the same predicate used by redo.
+  Its argument is a one-based ply, so convert a stored move index with `+ 1`.
+  Keep this conversion at the caller; do not change saved move indices or
+  assume that the first move belongs to White or to the human player.
 - Verification: `testNestedForksAndAncestorForksFormATreeWithoutMerging`,
   `testNestedBranchSwipeAndUndoPreserveOriginalLines`, and
   `testLegacyManualSavesBecomeBotPuzzlesWithoutLosingHistory` in
-  `Tests/GameTests.swift`.
+  `Tests/GameTests.swift`. For the shared player-move predicate, retain
+  `testBlackStartingPuzzlesReplyAndUndoToPlayerDecision`,
+  `testRedoSelectedMoveOnlyAllowsHumanAndRewindsBeforeIt`, and
+  `testRedoCanReplaceTheHumansCheckmatingMove`; these passed locally on
+  iOS 27.1 during the 2026-10-17 maintenance run. The engine suite also passed.
+  That full iOS run passed 42/48 tests, with six UI failures; do not count the
+  successful player-move tests as a full regression pass.
 
 ## Keep test scripts compatible with the macOS system Bash
 
@@ -177,12 +189,14 @@ claiming a newly investigated incident. Add future lessons only with evidence.
 - Verification: Host-only checks compiling the actual export method reproduced
   four failures before the fix and passed all six cases afterward. The standalone
   engine suite passed, and the app plus test targets built for arm64 Simulator.
-  Full simulator execution is currently blocked by Xcode 27.1 requiring
-  CoreSimulator 1174.9.2 while 1171.7 is installed.
+  Initial local simulator execution was blocked by Xcode 27.1 requiring
+  CoreSimulator 1174.9.2 while 1171.7 was installed.
   Two XCTest regressions cover normal starts, both setup colors, later move
-  numbers, empty games, and selected branches after persistence. Publish the
-  PR with this local limitation documented, and use the full CI suites to
-  verify runtime behavior before reporting regression success.
+  numbers, empty games, and selected branches after persistence. PR #20's
+  final commit `f58b7b4` passed both CI suites, including all 48 iOS tests
+  (run `38936221999`). When local infrastructure is unavailable, publish the
+  PR with the limitation documented and check full CI before reporting
+  regression success.
 
 ## Adding or updating a lesson
 
