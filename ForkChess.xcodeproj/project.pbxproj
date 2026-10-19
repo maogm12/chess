@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        AE0000000000000000000001 = {isa = PBXBuildFile; fileRef = AE0000000000000000000011; };
+        AE0000000000000000000002 = {isa = PBXBuildFile; fileRef = AE0000000000000000000012; };
 		A10000000000000000000001 /* ChessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* ChessApp.swift */; };
 		A10000000000000000000002 /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* HomeViewController.swift */; };
 		A10000000000000000000003 /* ChessBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* ChessBoardView.swift */; };
@@ -65,6 +67,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+        AE0000000000000000000011 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests/UITests/UITestSupport.swift; sourceTree = SOURCE_ROOT; };
+        AE0000000000000000000012 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests/UITests/ChessUITests.swift; sourceTree = SOURCE_ROOT; };
+        AE0000000000000000000013 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = ForkChessUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B10000000000000000000001 /* ChessApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessApp.swift; sourceTree = "<group>"; };
 		B10000000000000000000002 /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
 		B10000000000000000000003 /* ChessBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessBoardView.swift; sourceTree = "<group>"; };
@@ -141,6 +146,8 @@
 			isa = PBXGroup;
 			children = (
 				D10000000000000000000002 /* ChessApp */,
+                AE0000000000000000000011,
+                AE0000000000000000000012,
                 AC0000000000000000000001,
 				D10000000000000000000003 /* Products */,
 			);
@@ -211,6 +218,7 @@
 			isa = PBXGroup;
 			children = (
 				B10000000000000000000012 /* ForkChess.app */,
+                AE0000000000000000000013,
                 AC0000000000000000000002,
 			);
 			name = Products;
@@ -281,6 +289,7 @@
 			projectRoot = "";
 			targets = (
 				E10000000000000000000001 /* ForkChess */,
+                AE0000000000000000000021,
                 AD0000000000000000000001,
 			);
 		};
@@ -369,6 +378,12 @@
         AD0000000000000000000006 = {isa = PBXContainerItemProxy; containerPortal = F10000000000000000000001; proxyType = 1; remoteGlobalIDString = E10000000000000000000001; remoteInfo = ForkChess; };
         AD0000000000000000000007 = {isa = XCBuildConfiguration; name = Debug; buildSettings = { GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = com.maogm12.forkchess.tests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ForkChess.app/ForkChess"; BUNDLE_LOADER = "$(TEST_HOST)"; SWIFT_OBJC_BRIDGING_HEADER = ""; INFOPLIST_FILE = ""; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; };
         AD0000000000000000000008 = {isa = XCBuildConfiguration; name = Release; buildSettings = { GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = com.maogm12.forkchess.tests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ForkChess.app/ForkChess"; BUNDLE_LOADER = "$(TEST_HOST)"; SWIFT_OBJC_BRIDGING_HEADER = ""; INFOPLIST_FILE = ""; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; };
+        AE0000000000000000000021 = {isa = PBXNativeTarget; name = ForkChessUITests; productName = ForkChessUITests; productReference = AE0000000000000000000013; productType = "com.apple.product-type.bundle.ui-testing"; buildConfigurationList = AE0000000000000000000022; buildPhases = (AE0000000000000000000023, AE0000000000000000000024); dependencies = (AD0000000000000000000005); buildRules = (); };
+        AE0000000000000000000022 = {isa = XCConfigurationList; buildConfigurations = (AE0000000000000000000027, AE0000000000000000000028); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+        AE0000000000000000000023 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (AE0000000000000000000001, AE0000000000000000000002); runOnlyForDeploymentPostprocessing = 0; };
+        AE0000000000000000000024 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+        AE0000000000000000000027 = {isa = XCBuildConfiguration; name = Debug; buildSettings = { GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = com.maogm12.forkchess.uitests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_TARGET_NAME = ForkChess; SWIFT_OBJC_BRIDGING_HEADER = ""; INFOPLIST_FILE = ""; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; };
+        AE0000000000000000000028 = {isa = XCBuildConfiguration; name = Release; buildSettings = { GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = com.maogm12.forkchess.uitests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_TARGET_NAME = ForkChess; SWIFT_OBJC_BRIDGING_HEADER = ""; INFOPLIST_FILE = ""; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; };
 /* Begin XCBuildConfiguration section */
 		F20000000000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;

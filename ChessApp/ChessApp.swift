@@ -17,7 +17,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options: UIScene.ConnectionOptions) {
         guard let scene = scene as? UIWindowScene else { return }
-        let game = GameViewModel()
+        let game = makeGame()
         let navigation = ChessNavigationController(rootViewController: HomeViewController(game: game))
         let window = UIWindow(windowScene: scene)
         window.tintColor = ForkChessTheme.accent
@@ -26,6 +26,31 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         self.navigation = navigation
         self.window = window
         window.makeKeyAndVisible()
+    }
+
+    private func makeGame() -> GameViewModel {
+        #if DEBUG
+        let environment = ProcessInfo.processInfo.environment
+        if let identifier = environment["FORKCHESS_UI_TEST_ID"], UUID(uuidString: identifier) != nil {
+            // UI tests get a separate library, retained across relaunches in the same test.
+            let directory = FileManager.default.temporaryDirectory
+                .appendingPathComponent("UITests", isDirectory: true)
+                .appendingPathComponent(identifier, isDirectory: true)
+            let url = directory.appendingPathComponent("library.json")
+            do {
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                if let fixture = environment["FORKCHESS_UI_TEST_LIBRARY"] {
+                    let data = Data(fixture.utf8)
+                    _ = try JSONDecoder().decode(LocalLibrary.self, from: data)
+                    try data.write(to: url, options: .atomic)
+                }
+            } catch {
+                fatalError("Invalid UI test library: \(error)")
+            }
+            return GameViewModel(storageURL: url)
+        }
+        #endif
+        return GameViewModel()
     }
 
     func sceneWillResignActive(_ scene: UIScene) {

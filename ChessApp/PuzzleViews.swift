@@ -89,6 +89,8 @@ final class SetupBoardView: UIView {
         addSubview(grid)
         for index in 0..<64 {
             let cell = SetupSquare()
+            cell.isAccessibilityElement = true
+            cell.accessibilityIdentifier = "setup-square-\(String(UnicodeScalar(97 + index % 8)!))\(index / 8 + 1)"
             cell.addAction(UIAction { [weak self, weak cell] _ in
                 guard let self, let cell else { return }
                 self.selectedSquare = index

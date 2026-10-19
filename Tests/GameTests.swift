@@ -47,6 +47,34 @@ final class GameTests: XCTestCase {
         try await settle(game)
     }
 
+    func testHomeControlsRespectHorizontalSafeArea() async throws {
+        let (game, _) = try await makeGame()
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = try XCTUnwrap(scene.windows.first)
+        let original = window.rootViewController
+        defer { window.rootViewController = original }
+        let home = HomeViewController(game: game)
+        window.rootViewController = ChessNavigationController(rootViewController: home)
+        window.makeKeyAndVisible()
+        window.layoutIfNeeded()
+        home.view.layoutIfNeeded()
+        print("HOME native safe area \(home.view.safeAreaInsets), bounds \(home.view.bounds)")
+        for insets in [UIEdgeInsets.zero, UIEdgeInsets(top: 0, left: 60, bottom: 0, right: 80)] {
+            home.additionalSafeAreaInsets = insets
+            home.view.setNeedsLayout()
+            window.layoutIfNeeded()
+            home.view.layoutIfNeeded()
+            let safe = home.view.safeAreaLayoutGuide.layoutFrame
+            let buttons = descendants(of: home.view).compactMap { $0 as? UIButton }
+            XCTAssertFalse(buttons.isEmpty)
+            for button in buttons {
+                let frame = button.convert(button.bounds, to: home.view)
+                XCTAssertGreaterThanOrEqual(frame.minX, safe.minX, button.accessibilityLabel ?? "")
+                XCTAssertLessThanOrEqual(frame.maxX, safe.maxX, button.accessibilityLabel ?? "")
+            }
+        }
+    }
+
     func testGameToolbarOpensScopedSettingsAndAnchoredShareDirectly() async throws {
         let (game, _) = try await makeGame()
         game.newGame()
@@ -1591,6 +1619,52 @@ final class GameTests: XCTestCase {
         XCTAssertEqual(game.active?.moves, childFork)
         XCTAssertEqual(game.active?.branches.first { $0.id == child }?.moves, childMoves, "Undo preserves the abandoned continuation")
         XCTAssertEqual(game.games.count, 1)
+    }
+
+    func testLatestRevealsTipAfterReviewLayoutChanges() async throws {
+        let (game, _) = try await makeGame()
+        var record = SavedGame(playerWhite: true)
+        record.moves = ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5", "d2d3", "g8f6",
+                        "b1c3", "d7d6", "c1g5", "h7h6", "g5h4", "c8e6", "c4e6", "f7e6"]
+        record.notation = ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "d3", "Nf6",
+                           "Nc3", "d6", "Bg5", "h6", "Bh4", "Be6", "Bxe6", "fxe6"]
+        game.review(record)
+        try await settle(game)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = try XCTUnwrap(scene.windows.first)
+        let original = window.rootViewController
+        defer { window.rootViewController = original }
+        let screen = GameViewController(game: game)
+        window.rootViewController = ChessNavigationController(rootViewController: screen)
+        window.makeKeyAndVisible()
+        window.layoutIfNeeded()
+        // Keep the history scrollable on iPad as well as compact phones.
+        screen.additionalSafeAreaInsets.bottom = max(0, screen.view.bounds.height - 600)
+        screen.view.setNeedsLayout()
+        screen.view.layoutIfNeeded()
+        let table = try XCTUnwrap(descendants(of: screen.view).first {
+            $0.accessibilityIdentifier == "move-timeline"
+        } as? UITableView)
+        game.seek(1)
+        try await settle(game)
+        screen.updateView()
+        screen.view.layoutIfNeeded()
+        table.setContentOffset(.zero, animated: false)
+        table.layoutIfNeeded()
+        let reviewHeight = table.bounds.height
+        XCTAssertGreaterThan(table.contentSize.height, reviewHeight)
+        game.returnToLatest()
+        try await settle(game)
+        screen.updateView()
+        screen.view.layoutIfNeeded()
+        table.layoutIfNeeded()
+        XCTAssertFalse(game.reviewing)
+        XCTAssertEqual(game.cursorPly, record.moves.count)
+        XCTAssertNotEqual(table.bounds.height, reviewHeight)
+        let tip = table.rectForRow(at: IndexPath(row: table.numberOfRows(inSection: 0) - 1, section: 0))
+        XCTAssertGreaterThanOrEqual(tip.minY, table.bounds.minY - 1)
+        XCTAssertLessThanOrEqual(tip.maxY, table.bounds.maxY + 1,
+                                 "Latest must reveal the tip after the live controls change the history layout")
     }
 
     func testHistoryRowsKeepRedoHeightAcrossSelection() async throws {
