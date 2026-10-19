@@ -78,10 +78,15 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   as final even though its overall migration deadline still had time remaining.
   CoreSimulator can stall a status query while finishing the boot, so one slow
   read does not establish that a migration plugin failed.
+  On 2026-10-19, stdout-only and stderr-only partial output reproduced a second
+  failure: `TimeoutExpired` returned bytes for the populated stream and `None`
+  for the other. Concatenating those bytes with an empty string raised TypeError
+  before the retry or diagnostic write.
 - Prevention: Preserve any partial status output, retry the status read until
   the overall migration deadline, and still start XCTest only after every plugin
   reports success. Keep the repeated-timeout test to prove the deadline remains
-  bounded.
+  bounded. Decode each timeout stream independently before concatenating it;
+  `text=True` does not ensure that exception output is text.
 - Evidence: GitHub Actions run `39061692865`, job `117480800524`; its
   `boot.log` ended with `Finished`, followed by
   `Timed out reading simulator migration details`.
@@ -89,6 +94,11 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   2026-10-17, including a timed-out read followed by success and repeated
   timeouts that stop before XCTest. The fresh iPhone and iPad PR jobs exercise
   the updated startup path before the UI suite.
+  On 2026-10-19, the expanded runner suite reproduced stdout-only and stderr-only
+  TypeErrors and the missing diagnostic on the unchanged runner. After stream
+  normalization, all 22 tests passed, including both-stream retries and retention
+  of partial stderr when the deadline expires. These use real Python subprocesses
+  with simctl/Xcode stubs; they do not exercise a real simulator or app UI.
 
 ## Share FEN placement decoding while preserving engine piece identities
 
