@@ -65,6 +65,9 @@ elif args[:2] == ["simctl", "bootstatus"]:
     attempt = int(counter.read_text()) if counter.exists() else 0
     counter.write_text(str(attempt + 1))
     if attempt < int(os.environ.get("E2E_STUB_DETAILS_DELAY_ATTEMPTS", "1")):
+        for stream, key in [(sys.stdout, "STDOUT"), (sys.stderr, "STDERR")]:
+            stream.write(os.environ.get("E2E_STUB_PARTIAL_" + key, ""))
+            stream.flush()
         time.sleep(float(os.environ.get("E2E_STUB_DETAILS_DELAY_SECONDS", "0")))
     if sequence:
         print(sequence[min(attempt, len(sequence) - 1)])
@@ -191,10 +194,36 @@ else:
         self.assertIn(success, (self.root / "results/migration.log").read_text())
         self.assertTrue(any(command[:2] == ["xcodebuild", "test"] for command in self.commands()))
 
+    def assert_partial_timeout_retries(self, **streams):
+        result = self.run_script(
+            E2E_STUB_DETAILS_DELAY_SECONDS="0.8",
+            E2E_MIGRATION_STATUS_TIMEOUT_SECONDS="0.3",
+            E2E_MIGRATION_POLL_SECONDS="0.01",
+            **streams,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assert_cleanup()
+        reads = [command for command in self.commands()
+                 if command == ["xcrun", "simctl", "bootstatus", SIMULATOR, "-d"]]
+        self.assertGreaterEqual(len(reads), 2)
+        self.assertIn("status: success", (self.root / "results/migration.log").read_text())
+        self.assertTrue(any(command[:2] == ["xcodebuild", "test"] for command in self.commands()))
+
+    def test_stdout_only_timeout_is_retried(self):
+        self.assert_partial_timeout_retries(E2E_STUB_PARTIAL_STDOUT="partial stdout\n")
+
+    def test_stderr_only_timeout_is_retried(self):
+        self.assert_partial_timeout_retries(E2E_STUB_PARTIAL_STDERR="partial stderr\n")
+
+    def test_both_streams_timeout_is_retried(self):
+        self.assert_partial_timeout_retries(E2E_STUB_PARTIAL_STDOUT="partial stdout\n",
+                                            E2E_STUB_PARTIAL_STDERR="partial stderr\n")
+
     def test_repeated_migration_status_timeouts_stop_testing(self):
         result = self.run_script(
             E2E_STUB_DETAILS_DELAY_SECONDS="5",
             E2E_STUB_DETAILS_DELAY_ATTEMPTS="10",
+            E2E_STUB_PARTIAL_STDERR="partial stderr before timeout\n",
             E2E_MIGRATION_STATUS_TIMEOUT_SECONDS="0.1",
             E2E_MIGRATION_TIMEOUT_SECONDS="0.2",
             E2E_MIGRATION_POLL_SECONDS="0.01",
@@ -202,6 +231,8 @@ else:
         self.assertNotEqual(result.returncode, 0)
         self.assert_cleanup()
         self.assertIn("timed out", (self.root / "results/migration.log").read_text())
+        self.assertIn("partial stderr before timeout",
+                      (self.root / "results/migration.log").read_text())
         self.assertFalse(any(command[:2] == ["xcodebuild", "test"] for command in self.commands()))
 
     def test_inconsistent_boot_summary_requires_successful_plugin_details(self):
