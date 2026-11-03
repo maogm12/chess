@@ -602,16 +602,18 @@ this file is for reusable project knowledge.
 
 - Date and symptom: On 2026-11-02, the iPad E2E test
   `testBoardPreferencesApplyToExistingGames` intermittently left Show legal moves
-  on after tapping its switch immediately following the Board colors menu.
+  on after tapping its switch following the Board colors menu.
   The failure hierarchy showed Settings open, the menu gone, and the switch
   unchanged. The same case also failed once in independent PR #24 before its job
   retry passed.
-- Suspected trigger: Selecting a menu item changes settings and reloads the
-  settings table. The next synthesized touch could resolve a control while
-  dismissal or the table layout was still changing. The failed touch recipient
-  was not directly instrumented, so this is a suspected test-side synchronization
-  race, not an established cause; an app-side callback or state failure is not
-  ruled out. The synchronization change keeps the app code untouched.
+- Suspected trigger: The failed interaction followed a menu-driven settings
+  reload. The CI failure tap occurred about 5 seconds after the Forest tap, and
+  the local failure about 7.9 seconds after it, so dismissal timing alone is not
+  established as the cause. The next synthesized touch could still resolve a
+  control while the table layout was changing. The failed touch recipient was not
+  directly instrumented, so an app-side callback or state failure is not ruled
+  out. This is a bounded test-robustness mitigation, not a proven root-cause fix;
+  the app code is untouched.
 - Prevention: After selecting a menu action, wait until that action no longer
   exists. Before tapping a settings switch or picker, require three consecutive
   identical frame samples while it is hittable. Keep the exact value and behavior
