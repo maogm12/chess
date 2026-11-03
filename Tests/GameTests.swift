@@ -265,6 +265,30 @@ final class GameTests: XCTestCase {
         XCTAssertTrue(game.inputAllowed)
     }
 
+    func testGameSwitchBlocksInputUntilSnapshotArrives() async throws {
+        let (game, _) = try await makeGame()
+        game.newGame()
+        try await settle(game)
+        try await play("e2e4", in: game)
+        XCTAssertTrue(game.inputAllowed)
+
+        game.newGame()
+        XCTAssertFalse(game.inputAllowed, "A new game must not use the previous game's snapshot")
+        XCTAssertTrue(game.busy)
+        try await settle(game)
+        XCTAssertTrue(game.inputAllowed)
+
+        var puzzle = SavedGame(playerWhite: true, isPuzzle: true)
+        puzzle.baseFEN = "4k3/8/8/8/8/8/8/R3K3 w - - 0 1"
+        game.openPuzzle(puzzle)
+        XCTAssertFalse(game.inputAllowed, "Opening a puzzle must not use the previous game's snapshot")
+        XCTAssertTrue(game.busy)
+        try await settle(game)
+        XCTAssertEqual(game.record?.id, puzzle.id)
+        XCTAssertTrue(game.snapshot?.fen.hasPrefix("4k3/8/8/8/8/8/8/R3K3 w") == true)
+        XCTAssertTrue(game.inputAllowed)
+    }
+
     func testCompleteGameHistoryReplayPGNAndPersistence() async throws {
         let (game, url) = try await makeGame()
         game.settings.boardTheme = "Forest"

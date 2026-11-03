@@ -17,15 +17,25 @@ claiming a newly investigated incident. Add future lessons only with evidence.
 
 ## Ignore engine results from an obsolete game or history selection
 
+- Date and symptom: On 2026-11-03, starting another practice game or opening a
+  puzzle briefly left board input enabled against the previous game's snapshot.
 - Cause: A bounded engine search may finish after the user starts another game,
-  undoes a turn, or navigates to a historical position.
+  undoes a turn, or navigates to a historical position. `invalidate()` advances
+  the generation and clears activity flags, but deliberately does not clear
+  `snapshot`; replacing `active` before the asynchronous refresh left input
+  gated by stale drawing state.
 - Prevention: Preserve serial native-engine ownership and the view model's
   generation checks around asynchronous results, including hints and ratings.
   Cancellation alone does not establish that a result belongs to current state.
-- Evidence: `ChessApp/ArasanEngine.swift` and the `generation` checks in
+  When replacing the active record before a required refresh, mark the view
+  model busy before the method returns and only clear it for that generation's
+  accepted snapshot.
+- Evidence: `ChessApp/ArasanEngine.swift` and `GameViewModel.newGame()`,
+  `openPuzzle()`, `invalidate()`, and `refresh()` in
   `ChessApp/GameViewModel.swift`.
-- Verification: Relevant cancellation/history tests in `Tests/GameTests.swift`,
-  including `testRatingPersistenceUndoCancellationAndLegacyLibrary`.
+- Verification: Existing cancellation/history coverage, including
+  `testRatingPersistenceUndoCancellationAndLegacyLibrary`, plus
+  `testGameSwitchBlocksInputUntilSnapshotArrives` in `Tests/GameTests.swift`.
 
 ## Preserve history branches and compatibility with older saves
 
