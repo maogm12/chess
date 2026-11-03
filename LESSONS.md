@@ -597,3 +597,30 @@ this file is for reusable project knowledge.
   built successfully after the synchronization change. The complete iPhone/iPad
   PR matrix is the authoritative runtime verification; do not treat compilation
   alone as proof that the navigation race is gone.
+
+## Wait for menu dismissal and a stable frame before synthesized taps
+
+- Date and symptom: On 2026-11-02, the iPad E2E test
+  `testBoardPreferencesApplyToExistingGames` intermittently left Show legal moves
+  on after tapping its switch immediately following the Board colors menu.
+  The failure hierarchy showed Settings open, the menu gone, and the switch
+  unchanged. The same case also failed once in independent PR #24 before its job
+  retry passed.
+- Cause: Selecting a menu item changes settings and reloads the settings table.
+  The next synthesized touch could resolve a control while dismissal or the table
+  layout was still changing. The failed touch recipient was not directly
+  instrumented, so this is a test synchronization defect, not evidence that the
+  switch itself is broken.
+- Prevention: After selecting a menu action, wait until that action no longer
+  exists. Before tapping a settings switch or picker, require two consecutive
+  identical frames while it is hittable. Keep the exact value and behavior
+  assertions; do not replace this with fixed sleeps, silent action retries, or
+  weaker assertions.
+- Evidence: `ChessUITestCase.choose`, `waitForStableFrame`, and `setSwitch` in
+  `Tests/UITests/UITestSupport.swift`; the retained original failure screenshot,
+  hierarchy and synthesized event from the PR #23 investigation.
+- Verification: The focused iPad test passed 1/1 (92.37 seconds), then the full
+  iPad E2E suite passed 32/32 (1805.07 seconds) on iPad mini (A17 Pro), iOS 26.5
+  (23F73), Xcode 27.2 (27B52). All 22 E2E runner subprocess tests also passed.
+  CI remains the cross-device authority; local runs do not use the CI runner's
+  exact simulator build.

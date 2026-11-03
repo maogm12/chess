@@ -249,6 +249,20 @@ class ChessUITestCase: XCTestCase {
         control.exists && control.isHittable && scroll.frame.contains(control.frame)
     }
 
+    private func waitForStableFrame(_ control: XCUIElement,
+                                    file: StaticString = #filePath, line: UInt = #line) {
+        var previous: CGRect?
+        var stableSamples = 0
+        for _ in 0..<20 {
+            let frame = control.frame
+            stableSamples = frame == previous ? stableSamples + 1 : 0
+            previous = frame
+            if control.isHittable && stableSamples >= 2 { return }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+        }
+        XCTFail("\(control) frame did not stabilize", file: file, line: line)
+    }
+
     func setSlider(_ slider: XCUIElement, toNormalizedSliderPosition position: CGFloat,
                    acceptedLevels: ClosedRange<Int>,
                    file: StaticString = #filePath, line: UInt = #line) {
@@ -281,13 +295,17 @@ class ChessUITestCase: XCTestCase {
     func choose(_ picker: String, option: String) {
         let control = app.buttons[picker]
         reveal(control)
+        waitForStableFrame(control)
         tap(control)
-        tap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", option)).firstMatch)
+        let choice = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", option)).firstMatch
+        tap(choice)
+        wait({ !choice.exists }, "\(option) menu dismissed")
     }
 
     func setSwitch(_ name: String, on: Bool) {
         let control = app.switches[name]
         reveal(control)
+        waitForStableFrame(control)
         let expected = on ? "1" : "0"
         if (control.value as? String) != expected { tap(control) }
         assertValue(control, expected)
