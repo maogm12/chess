@@ -90,9 +90,12 @@ while True:
             capture_output=True, text=True, timeout=status_timeout,
         )
     except subprocess.TimeoutExpired as error:
-        output = (error.stdout or "") + (error.stderr or "")
-        if isinstance(output, bytes):
-            output = output.decode(errors="replace")
+        # TimeoutExpired can carry bytes even when text=True. Normalize each
+        # stream before joining: the other stream may be empty (None).
+        output = "".join(
+            stream.decode(errors="replace") if isinstance(stream, bytes) else (stream or "")
+            for stream in (error.stdout, error.stderr)
+        )
         Path(details_path).write_text(
             output + f"\nMigration status read timed out after {status_timeout:g}s; retrying.\n"
         )

@@ -78,10 +78,15 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   as final even though its overall migration deadline still had time remaining.
   CoreSimulator can stall a status query while finishing the boot, so one slow
   read does not establish that a migration plugin failed.
+  On 2026-10-19, stdout-only and stderr-only partial output reproduced a second
+  failure: `TimeoutExpired` returned bytes for the populated stream and `None`
+  for the other. Concatenating those bytes with an empty string raised TypeError
+  before the retry or diagnostic write.
 - Prevention: Preserve any partial status output, retry the status read until
   the overall migration deadline, and still start XCTest only after every plugin
   reports success. Keep the repeated-timeout test to prove the deadline remains
-  bounded.
+  bounded. Decode each timeout stream independently before concatenating it;
+  `text=True` does not ensure that exception output is text.
 - Evidence: GitHub Actions run `39061692865`, job `117480800524`; its
   `boot.log` ended with `Finished`, followed by
   `Timed out reading simulator migration details`.
@@ -89,6 +94,11 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   2026-10-17, including a timed-out read followed by success and repeated
   timeouts that stop before XCTest. The fresh iPhone and iPad PR jobs exercise
   the updated startup path before the UI suite.
+  On 2026-10-19, the expanded runner suite reproduced stdout-only and stderr-only
+  TypeErrors and the missing diagnostic on the unchanged runner. After stream
+  normalization, all 22 tests passed, including both-stream retries and retention
+  of partial stderr when the deadline expires. These use real Python subprocesses
+  with simctl/Xcode stubs; they do not exercise a real simulator or app UI.
 
 ## Share FEN placement decoding while preserving engine piece identities
 
@@ -587,3 +597,33 @@ this file is for reusable project knowledge.
   built successfully after the synchronization change. The complete iPhone/iPad
   PR matrix is the authoritative runtime verification; do not treat compilation
   alone as proof that the navigation race is gone.
+
+## Wait for menu dismissal and a stable frame before synthesized taps
+
+- Date and symptom: On 2026-11-02, the iPad E2E test
+  `testBoardPreferencesApplyToExistingGames` intermittently left Show legal moves
+  on after tapping its switch following the Board colors menu.
+  The failure hierarchy showed Settings open, the menu gone, and the switch
+  unchanged. The same case also failed once in independent PR #24 before its job
+  retry passed.
+- Suspected trigger: The failed interaction followed a menu-driven settings
+  reload. The CI failure tap occurred about 5 seconds after the Forest tap, and
+  the local failure about 7.9 seconds after it, so dismissal timing alone is not
+  established as the cause. The next synthesized touch could still resolve a
+  control while the table layout was changing. The failed touch recipient was not
+  directly instrumented, so an app-side callback or state failure is not ruled
+  out. This is a bounded test-robustness mitigation, not a proven root-cause fix;
+  the app code is untouched.
+- Prevention: After selecting a menu action, wait until that action no longer
+  exists. Before tapping a settings switch or picker, require three consecutive
+  identical frame samples while it is hittable. Keep the exact value and behavior
+  assertions; do not replace this with fixed sleeps, silent action retries, or
+  weaker assertions.
+- Evidence: `ChessUITestCase.choose`, `waitForStableFrame`, and `setSwitch` in
+  `Tests/UITests/UITestSupport.swift`; the retained original failure screenshot,
+  hierarchy and synthesized event from the PR #23 investigation.
+- Verification: The focused iPad test passed 1/1 (92.37 seconds), then the full
+  iPad E2E suite passed 32/32 (1805.07 seconds) on iPad mini (A17 Pro), iOS 26.5
+  (23F73), Xcode 27.2 (27B52). All 22 E2E runner subprocess tests also passed.
+  CI remains the cross-device authority; local runs do not use the CI runner's
+  exact simulator build.
