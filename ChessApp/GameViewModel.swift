@@ -407,6 +407,7 @@ final class GameViewModel: ObservableObject {
 
     func resume() {
         invalidate()
+        busy = true
         reviewGame = nil
         startTimer()
         Task { await refresh(); await replyIfNeeded() }
