@@ -17,15 +17,40 @@ claiming a newly investigated incident. Add future lessons only with evidence.
 
 ## Ignore engine results from an obsolete game or history selection
 
+- Date and symptom: On 2026-11-03, starting another practice game or opening a
+  puzzle briefly left board input enabled against the previous game's snapshot.
+  On 2026-11-04, review of PR #25 (`af414a6`) exposed that navigating to the
+  game screen reopened the same input window even after both entry points
+  marked themselves busy.
 - Cause: A bounded engine search may finish after the user starts another game,
-  undoes a turn, or navigates to a historical position.
+  undoes a turn, or navigates to a historical position. `invalidate()` advances
+  the generation and clears activity flags, but deliberately does not clear
+  `snapshot`; replacing `active` before the asynchronous refresh left input
+  gated by stale drawing state. `GameViewController.viewWillAppear` also calls
+  `resume()`, whose second invalidation cleared the entry point's busy flag.
 - Prevention: Preserve serial native-engine ownership and the view model's
   generation checks around asynchronous results, including hints and ratings.
   Cancellation alone does not establish that a result belongs to current state.
-- Evidence: `ChessApp/ArasanEngine.swift` and the `generation` checks in
-  `ChessApp/GameViewModel.swift`.
-- Verification: Relevant cancellation/history tests in `Tests/GameTests.swift`,
-  including `testRatingPersistenceUndoCancellationAndLegacyLibrary`.
+  When replacing the active record before a required refresh, mark the view
+  model busy before the method returns and only clear it for that generation's
+  accepted snapshot or failure. Keep that protection in lifecycle-triggered
+  refreshes such as `resume()` too. Test the actual navigation push before
+  yielding to queued tasks; testing the replacement method alone misses this
+  caller sequence. Do not make all invalidation paths busy, since pause and
+  deletion also use them.
+- Evidence: `ChessApp/ArasanEngine.swift` and `GameViewModel.newGame()`,
+  `openPuzzle()`, `resume()`, `invalidate()`, and `refresh()` in
+  `ChessApp/GameViewModel.swift`; `GameViewController.viewWillAppear`.
+- Verification: Existing cancellation/history coverage, including
+  `testRatingPersistenceUndoCancellationAndLegacyLibrary`, plus
+  `testGameSwitchBlocksInputUntilSnapshotArrives` and
+  `testGameSwitchNavigationKeepsInputBlockedUntilSnapshotArrives` in
+  `Tests/GameTests.swift`. The navigation test failed six assertions before
+  the resume fix: both entries reopened input and accepted stale selection.
+  After the fix, the engine suite and all 52 iOS integration tests passed on
+  iPhone 18 Pro / iOS 27.2. The promotion-popover test now waits for the
+  appearance-triggered refresh before sending moves; its original immediate
+  taps were correctly blocked and timed out in the first full run.
 
 ## Preserve history branches and compatibility with older saves
 

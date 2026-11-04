@@ -394,6 +394,7 @@ final class GameViewModel: ObservableObject {
     func newGame() {
         pauseTimer()
         invalidate()
+        busy = true
         reviewGame = nil
         flipped = false
         active = SavedGame(playerWhite: settings.playWhite)
@@ -406,6 +407,7 @@ final class GameViewModel: ObservableObject {
 
     func resume() {
         invalidate()
+        busy = true
         reviewGame = nil
         startTimer()
         Task { await refresh(); await replyIfNeeded() }
@@ -443,6 +445,7 @@ final class GameViewModel: ObservableObject {
     func openPuzzle(_ record: SavedGame) {
         pauseTimer()
         invalidate()
+        busy = true
         reviewGame = nil
         flipped = false
         var puzzle = games.first { $0.id == record.id && !$0.branches.isEmpty } ?? record
