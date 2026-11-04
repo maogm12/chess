@@ -4,12 +4,6 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
     private enum TimelineRow: Equatable {
         case moves(number: Int, white: Int?, black: Int?)
         case fork(BranchPoint)
-        var lastPly: Int {
-            switch self {
-            case .moves(_, let white, let black): return max(white ?? -1, black ?? -1) + 1
-            case .fork(let point): return point.ply
-            }
-        }
         func contains(ply: Int) -> Bool {
             switch self {
             case .moves(_, let white, let black): return white == ply - 1 || black == ply - 1

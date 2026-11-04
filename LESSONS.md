@@ -326,10 +326,19 @@ this file is for reusable project knowledge.
   Do not replace UIKit's internal navigation delegate or disable back globally.
   Vertical drags and shared rows remain outside horizontal paging; actual
   switching still observes `pageBranch` readiness/busy guards.
+- Maintenance, 2026-11-02: `TimelineRow.lastPly` remained after this change
+  replaced the old ply-derived swipe region with rendered row boundaries, but
+  had no callers. It was removed to avoid reviving a second ownership rule.
+  Keep `TimelineRow.contains(ply:)`, which still selects the row for scrolling.
 - Verification: `testEmptyBranchContinuationOwnsHistorySwipes` covers an empty
   two-line fork, horizontal/vertical ownership, shared rows, both system pop
   recognizers, branch round trips and explicit navigation. Existing nested
   branch, partial drag and scroll-position tests cover populated continuations.
+  After removing the stale helper, the native engine suite passed and all 50
+  iOS integration tests passed on a newly created iPhone 18 Pro / iOS 27.2
+  simulator. An initial iPhone Duo / iOS 27.1 run failed six viewport-sensitive
+  UI assertions; no baseline was run, so those failures were not classified as
+  pre-existing. GitHub CI remains the authoritative cross-device regression.
 
 ## Reserve redo space before selecting a history move
 
