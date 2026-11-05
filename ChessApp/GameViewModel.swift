@@ -517,6 +517,7 @@ final class GameViewModel: ObservableObject {
         guard canUndo, var active, let playerMove = active.lastPlayerMoveIndex else { return }
         pauseTimer()
         invalidate()
+        busy = true
         active.practiceSeconds = self.active?.practiceSeconds
         active.fork(at: playerMove, seconds: active.practiceSeconds ?? 600)
         self.active = active
