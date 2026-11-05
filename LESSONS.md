@@ -21,25 +21,31 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   puzzle briefly left board input enabled against the previous game's snapshot.
   On 2026-11-04, review of PR #25 (`af414a6`) exposed that navigating to the
   game screen reopened the same input window even after both entry points
-  marked themselves busy.
+  marked themselves busy. On 2026-11-05, `undo()` still accepted selection
+  and moves from the pre-undo snapshot while its new branch awaited refresh.
 - Cause: A bounded engine search may finish after the user starts another game,
   undoes a turn, or navigates to a historical position. `invalidate()` advances
   the generation and clears activity flags, but deliberately does not clear
   `snapshot`; replacing `active` before the asynchronous refresh left input
   gated by stale drawing state. `GameViewController.viewWillAppear` also calls
   `resume()`, whose second invalidation cleared the entry point's busy flag.
+  `undo()` likewise forked the active line after invalidation but only marked
+  itself busy inside the queued refresh, leaving both play and undo enabled.
 - Prevention: Preserve serial native-engine ownership and the view model's
   generation checks around asynchronous results, including hints and ratings.
   Cancellation alone does not establish that a result belongs to current state.
   When replacing the active record before a required refresh, mark the view
   model busy before the method returns and only clear it for that generation's
   accepted snapshot or failure. Keep that protection in lifecycle-triggered
-  refreshes such as `resume()` too. Test the actual navigation push before
+  refreshes such as `resume()` and history mutations such as `undo()` too.
+  Check selection, move submission and repeated undo before yielding to refresh;
+  verify that the restored line and preserved branch are saved correctly.
+  Test the actual navigation push before
   yielding to queued tasks; testing the replacement method alone misses this
   caller sequence. Do not make all invalidation paths busy, since pause and
   deletion also use them.
 - Evidence: `ChessApp/ArasanEngine.swift` and `GameViewModel.newGame()`,
-  `openPuzzle()`, `resume()`, `invalidate()`, and `refresh()` in
+  `openPuzzle()`, `resume()`, `undo()`, `invalidate()`, and `refresh()` in
   `ChessApp/GameViewModel.swift`; `GameViewController.viewWillAppear`.
 - Verification: Existing cancellation/history coverage, including
   `testRatingPersistenceUndoCancellationAndLegacyLibrary`, plus
@@ -51,6 +57,12 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   iPhone 18 Pro / iOS 27.2. The promotion-popover test now waits for the
   appearance-triggered refresh before sending moves; its original immediate
   taps were correctly blocked and timed out in the first full run.
+  `testUndoBlocksStaleInputUntilSnapshotArrives` reproduced accepted stale
+  selection, an unintended continuation for White and an illegal move for Black
+  before the undo fix. With synchronous busy protection, the focused regression
+  passes for both colors, including ignored repeat undo and saved branches.
+  The engine suite and all 53 iOS integration tests passed on iPhone 18 Pro /
+  iOS 27.2 after the undo fix.
 
 ## Preserve history branches and compatibility with older saves
 
