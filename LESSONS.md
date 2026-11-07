@@ -21,25 +21,31 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   puzzle briefly left board input enabled against the previous game's snapshot.
   On 2026-11-04, review of PR #25 (`af414a6`) exposed that navigating to the
   game screen reopened the same input window even after both entry points
-  marked themselves busy.
+  marked themselves busy. On 2026-11-05, `undo()` still accepted selection
+  and moves from the pre-undo snapshot while its new branch awaited refresh.
 - Cause: A bounded engine search may finish after the user starts another game,
   undoes a turn, or navigates to a historical position. `invalidate()` advances
   the generation and clears activity flags, but deliberately does not clear
   `snapshot`; replacing `active` before the asynchronous refresh left input
   gated by stale drawing state. `GameViewController.viewWillAppear` also calls
   `resume()`, whose second invalidation cleared the entry point's busy flag.
+  `undo()` likewise forked the active line after invalidation but only marked
+  itself busy inside the queued refresh, leaving both play and undo enabled.
 - Prevention: Preserve serial native-engine ownership and the view model's
   generation checks around asynchronous results, including hints and ratings.
   Cancellation alone does not establish that a result belongs to current state.
   When replacing the active record before a required refresh, mark the view
   model busy before the method returns and only clear it for that generation's
   accepted snapshot or failure. Keep that protection in lifecycle-triggered
-  refreshes such as `resume()` too. Test the actual navigation push before
+  refreshes such as `resume()` and history mutations such as `undo()` too.
+  Check selection, move submission and repeated undo before yielding to refresh;
+  verify that the restored line and preserved branch are saved correctly.
+  Test the actual navigation push before
   yielding to queued tasks; testing the replacement method alone misses this
   caller sequence. Do not make all invalidation paths busy, since pause and
   deletion also use them.
 - Evidence: `ChessApp/ArasanEngine.swift` and `GameViewModel.newGame()`,
-  `openPuzzle()`, `resume()`, `invalidate()`, and `refresh()` in
+  `openPuzzle()`, `resume()`, `undo()`, `invalidate()`, and `refresh()` in
   `ChessApp/GameViewModel.swift`; `GameViewController.viewWillAppear`.
 - Verification: Existing cancellation/history coverage, including
   `testRatingPersistenceUndoCancellationAndLegacyLibrary`, plus
@@ -51,6 +57,12 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   iPhone 18 Pro / iOS 27.2. The promotion-popover test now waits for the
   appearance-triggered refresh before sending moves; its original immediate
   taps were correctly blocked and timed out in the first full run.
+  `testUndoBlocksStaleInputUntilSnapshotArrives` reproduced accepted stale
+  selection, an unintended continuation for White and an illegal move for Black
+  before the undo fix. With synchronous busy protection, the focused regression
+  passes for both colors, including ignored repeat undo and saved branches.
+  The engine suite and all 53 iOS integration tests passed on iPhone 18 Pro /
+  iOS 27.2 after the undo fix.
 
 ## Preserve history branches and compatibility with older saves
 
@@ -485,6 +497,29 @@ this file is for reusable project knowledge.
   premature, transiently pending and failed summaries, command errors, cleanup
   and failure propagation. These subprocess checks do not establish simulator UI
   stability.
+
+## Retain the readiness predicate's evidence when a UI wait fails
+
+- Date and problem: On 2026-11-07, investigation of PR #26's iPad launch
+  failure at `d16e1c0` could not tell whether the home button was absent,
+  disabled, or not hittable. The teardown image showed a later state.
+- Cause: `ChessUITestCase.waitEnabled` combined three short-circuited checks
+  into a generic "enabled" failure. `launch` and `relaunch` also did not pass
+  the test's source location to that wait, so failures pointed into the helper.
+- Prevention: Retain the last predicate sample and report which checks actually
+  ran. Mark skipped reads as "not queried"; do not perform new accessibility
+  queries after the timeout and present them as evidence from the failed wait.
+  Pass caller file/line through launch helpers. Preserve the original predicate,
+  timeout, and short-circuit order; diagnostics do not repair a readiness race.
+- Evidence: `launch`, `relaunch`, `wait`, and `waitEnabled` in
+  `Tests/UITests/UITestSupport.swift`; PR #26 E2E run `42072341261`, attempt 2.
+- Verification: Temporary missing-control and disabled-Undo probes both failed
+  as intended, reporting the actual test lines and distinct sampled states.
+  The probes were removed before the complete iOS suite passed 53/53 on
+  iPhone 18 Pro / iOS 27.2. The engine suite and all 22 runner tests passed.
+  A focused iPad mini / iOS 26.5 settings E2E failed waiting for the Black menu
+  item, with `exists=false`; its first launch succeeded. This is a different
+  failure from the earlier CI launch timeout, and neither root is established.
 
 ## Account for automation time when checking timer pauses
 

@@ -83,7 +83,7 @@ class ChessUITestCase: XCTestCase {
     }
 
     func launch(games: [[String: Any]] = [], settings: [String: Any] = [:],
-                appearance: String? = nil) throws {
+                appearance: String? = nil, file: StaticString = #filePath, line: UInt = #line) throws {
         app?.terminate()
         app = XCUIApplication()
         var library: [String: Any] = ["settings": LibraryFixture.settings(settings), "games": games]
@@ -97,14 +97,14 @@ class ChessUITestCase: XCTestCase {
         if let appearance { app.launchArguments += ["-AppleInterfaceStyle", appearance] }
         app.launch()
         app.launchEnvironment.removeValue(forKey: "FORKCHESS_UI_TEST_LIBRARY")
-        waitEnabled(app.buttons["Start new game"])
+        waitEnabled(app.buttons["Start new game"], file: file, line: line)
     }
 
-    func relaunch() {
+    func relaunch(file: StaticString = #filePath, line: UInt = #line) {
         app.terminate()
         app.launchEnvironment.removeValue(forKey: "FORKCHESS_UI_TEST_LIBRARY")
         app.launch()
-        waitEnabled(app.buttons["Start new game"])
+        waitEnabled(app.buttons["Start new game"], file: file, line: line)
     }
 
     func element(_ identifier: String) -> XCUIElement {
@@ -112,15 +112,28 @@ class ChessUITestCase: XCTestCase {
     }
 
     func wait(_ condition: @escaping () -> Bool, _ message: String = "UI state",
-              timeout: TimeInterval = 15, file: StaticString = #filePath, line: UInt = #line) {
+              timeout: TimeInterval = 15, diagnostics: () -> String = { "" },
+              file: StaticString = #filePath, line: UInt = #line) {
         let expectation = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in condition() }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: timeout), .completed,
-                       "Timed out waiting for \(message)", file: file, line: line)
+                       "Timed out waiting for \(message). \(diagnostics())", file: file, line: line)
     }
 
     func waitEnabled(_ control: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
-        wait({ control.exists && control.isEnabled && control.isHittable },
-             "\(control) enabled", file: file, line: line)
+        var observation = "No readiness sample completed"
+        wait({
+            // Keep the predicate's evidence; teardown may observe a later UI state.
+            let exists = control.exists
+            observation = "exists=\(exists), isEnabled=not queried, isHittable=not queried"
+            guard exists else { return false }
+            let enabled = control.isEnabled
+            observation = "exists=true, isEnabled=\(enabled), isHittable=not queried"
+            guard enabled else { return false }
+            let hittable = control.isHittable
+            observation = "exists=true, isEnabled=true, isHittable=\(hittable)"
+            return hittable
+        }, "\(control) ready", diagnostics: { "Last readiness sample: \(observation)" },
+           file: file, line: line)
     }
 
     func tap(_ control: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
