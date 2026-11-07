@@ -498,6 +498,29 @@ this file is for reusable project knowledge.
   and failure propagation. These subprocess checks do not establish simulator UI
   stability.
 
+## Retain the readiness predicate's evidence when a UI wait fails
+
+- Date and problem: On 2026-11-07, investigation of PR #26's iPad launch
+  failure at `d16e1c0` could not tell whether the home button was absent,
+  disabled, or not hittable. The teardown image showed a later state.
+- Cause: `ChessUITestCase.waitEnabled` combined three short-circuited checks
+  into a generic "enabled" failure. `launch` and `relaunch` also did not pass
+  the test's source location to that wait, so failures pointed into the helper.
+- Prevention: Retain the last predicate sample and report which checks actually
+  ran. Mark skipped reads as "not queried"; do not perform new accessibility
+  queries after the timeout and present them as evidence from the failed wait.
+  Pass caller file/line through launch helpers. Preserve the original predicate,
+  timeout, and short-circuit order; diagnostics do not repair a readiness race.
+- Evidence: `launch`, `relaunch`, `wait`, and `waitEnabled` in
+  `Tests/UITests/UITestSupport.swift`; PR #26 E2E run `42072341261`, attempt 2.
+- Verification: Temporary missing-control and disabled-Undo probes both failed
+  as intended, reporting the actual test lines and distinct sampled states.
+  The probes were removed before the complete iOS suite passed 53/53 on
+  iPhone 18 Pro / iOS 27.2. The engine suite and all 22 runner tests passed.
+  A focused iPad mini / iOS 26.5 settings E2E failed waiting for the Black menu
+  item, with `exists=false`; its first launch succeeded. This is a different
+  failure from the earlier CI launch timeout, and neither root is established.
+
 ## Account for automation time when checking timer pauses
 
 - Date and symptom: On 2026-10-17, the background timer E2E test first failed
