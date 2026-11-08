@@ -334,6 +334,47 @@ final class GameTests: XCTestCase {
         }
     }
 
+    func testForegroundBlocksStaleInputAfterInterruptedUndo() async throws {
+        for playerWhite in [true, false] {
+            let (game, url) = try await makeGame()
+            game.settings.playWhite = playerWhite
+            game.newGame()
+            try await settle(game)
+            for _ in 0..<2 {
+                game.play(try XCTUnwrap(game.snapshot?.legal.first))
+                try await settle(game)
+            }
+            let original = try XCTUnwrap(game.active)
+            let oldSnapshot = try XCTUnwrap(game.snapshot)
+            let oldMove = try XCTUnwrap(oldSnapshot.legal.first)
+            let targetPly = try XCTUnwrap(original.lastPlayerMoveIndex)
+            let expectedMoves = Array(original.moves.prefix(targetPly))
+
+            game.undo()
+            game.setSuspended(true, gameVisible: true)
+            game.setSuspended(false, gameVisible: true)
+            XCTAssertTrue(game.busy, "Foreground must restore protection cleared by pause")
+            XCTAssertFalse(game.inputAllowed)
+            XCTAssertFalse(game.canUndo)
+            XCTAssertEqual(game.snapshot?.fen, oldSnapshot.fen)
+            game.handleTap(oldMove.from)
+            XCTAssertNil(game.selectedSquare)
+            game.play(oldMove)
+            XCTAssertEqual(game.active?.moves, expectedMoves)
+
+            try await settle(game)
+            XCTAssertEqual(game.active?.moves, expectedMoves)
+            XCTAssertEqual(game.snapshot?.notation, Array(original.notation.prefix(targetPly)))
+            XCTAssertTrue(game.inputAllowed)
+            XCTAssertEqual(game.active?.branchCount, 2)
+            XCTAssertEqual(game.active?.branches.first?.moves, original.moves)
+            let library = try JSONDecoder().decode(LocalLibrary.self, from: Data(contentsOf: url))
+            let saved = try XCTUnwrap(library.games.first { $0.id == original.id })
+            XCTAssertEqual(saved.moves, expectedMoves)
+            XCTAssertEqual(saved.branches.first?.moves, original.moves)
+        }
+    }
+
     func testGameSwitchNavigationKeepsInputBlockedUntilSnapshotArrives() async throws {
         let (game, _) = try await makeGame()
         game.newGame()
