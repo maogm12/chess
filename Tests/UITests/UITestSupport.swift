@@ -320,7 +320,16 @@ class ChessUITestCase: XCTestCase {
         reveal(control)
         waitForStableFrame(control)
         let expected = on ? "1" : "0"
-        if (control.value as? String) != expected { tap(control) }
+        for _ in 0..<2 where (control.value as? String) != expected {
+            tap(control)
+            // A synthesized iPad tap can miss without an XCTest error. Give
+            // UIKit time to publish the switch state before retapping once.
+            let changed = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in (control.value as? String) == expected },
+                object: nil
+            )
+            if XCTWaiter.wait(for: [changed], timeout: 2) == .completed { break }
+        }
         assertValue(control, expected)
     }
 

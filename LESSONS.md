@@ -537,6 +537,15 @@ this file is for reusable project knowledge.
   A focused iPad mini / iOS 26.5 settings E2E failed waiting for the Black menu
   item, with `exists=false`; its first launch succeeded. This is a different
   failure from the earlier CI launch timeout, and neither root is established.
+  On 2026-11-08, full iPad E2E revealed two harness boundaries at head
+  `22e8929`: `setSwitch` issued one synthesized tap that left
+  `Show coordinates` unchanged, and `testAllGlobalSettingsAndLicensePersist`
+  completed every assertion in 242 seconds but the runner treated the 240-second
+  default allowance as a failure. `setSwitch` now waits briefly for the
+  requested value and retaps once, while still asserting the target value;
+  the runner's bounded default allowance is 300 seconds, below its existing
+  360-second maximum. Neither adjustment relaxes a feature assertion. These
+  harness fixes still require their own exact-head CI run.
 
 ## Account for automation time when checking timer pauses
 
