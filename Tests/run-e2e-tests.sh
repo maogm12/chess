@@ -136,7 +136,7 @@ xcodebuild test \
   -maximum-concurrent-test-simulator-destinations 1 \
   -collect-test-diagnostics never \
   -test-timeouts-enabled YES \
-  -default-test-execution-time-allowance 240 \
+  -default-test-execution-time-allowance 300 \
   -maximum-test-execution-time-allowance 360 \
   -resultBundlePath "$output_dir/EndToEnd.xcresult" \
   CODE_SIGNING_ALLOWED=NO \

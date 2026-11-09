@@ -545,8 +545,7 @@ final class GameViewModel: ObservableObject {
         suspended = value
         if value { pause() }
         else if gameVisible && !reviewing {
-            startTimer()
-            Task { await replyIfNeeded() }
+            resume()
         }
     }
 
