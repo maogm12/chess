@@ -136,7 +136,9 @@ final class SettingsViewController: GameObservingViewController, UITableViewData
             slider.accessibilityValue = "\(preferences.skill) of 20"
             slider.addAction(UIAction { [weak self, weak slider] _ in
                 guard let slider else { return }
-                self?.change { $0.skill = Int(slider.value.rounded()) }
+                let skill = Int(slider.value.rounded())
+                slider.accessibilityValue = "\(skill) of 20"
+                self?.change { $0.skill = skill }
             }, for: .valueChanged)
             cell.contentView.addSubview(slider)
             slider.pinEdges(to: cell.contentView, insets: UIEdgeInsets(top: 10, left: 16, bottom: 10, right: 16))

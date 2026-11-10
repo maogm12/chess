@@ -490,27 +490,25 @@ final class GameViewController: GameObservingViewController, UITableViewDataSour
         }
     }
 
-    private var firstMoveOffset: Int {
-        ChessPosition.whiteToMove(in: game.record?.baseFEN ?? GameViewModel.startFEN) ? 0 : 1
-    }
     private func makeTimeline() -> [TimelineRow] {
         guard let record = game.record else { return [] }
-        let fields = record.baseFEN.split(separator: " ")
-        let firstNumber = fields.count > 5 ? Int(fields[5]) ?? 1 : 1
+        let numbering = ChessPosition.moveNumbering(in: record.baseFEN)
         let points = Dictionary(uniqueKeysWithValues: record.branchPoints.map { ($0.ply, $0) })
         var rows: [TimelineRow] = []
         if let start = points[0] { rows.append(.fork(start)) }
-        for row in 0..<((notation.count + firstMoveOffset + 1) / 2) where !notation.isEmpty {
-            let white = row * 2 - firstMoveOffset
+        for row in 0..<((notation.count + numbering.firstPlyOffset + 1) / 2) where !notation.isEmpty {
+            let white = row * 2 - numbering.firstPlyOffset
             let black = white + 1
             let whiteIndex = notation.indices.contains(white) ? white : nil
             let blackIndex = notation.indices.contains(black) ? black : nil
             if let point = points[white + 1], whiteIndex != nil {
-                rows.append(.moves(number: firstNumber + row, white: whiteIndex, black: nil))
+                rows.append(.moves(number: numbering.firstFullmove + row, white: whiteIndex, black: nil))
                 rows.append(.fork(point))
-                if blackIndex != nil { rows.append(.moves(number: firstNumber + row, white: nil, black: blackIndex)) }
+                if blackIndex != nil {
+                    rows.append(.moves(number: numbering.firstFullmove + row, white: nil, black: blackIndex))
+                }
             } else {
-                rows.append(.moves(number: firstNumber + row, white: whiteIndex, black: blackIndex))
+                rows.append(.moves(number: numbering.firstFullmove + row, white: whiteIndex, black: blackIndex))
             }
             if let point = points[black + 1], blackIndex != nil { rows.append(.fork(point)) }
         }

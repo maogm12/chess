@@ -7,8 +7,21 @@ import Foundation
 enum ChessPosition {
     static let empty: Character = " "
 
+    struct MoveNumbering: Equatable {
+        let firstFullmove: Int
+        /// Zero for a White-to-move FEN, one for Black to move.
+        let firstPlyOffset: Int
+    }
+
     static func whiteToMove(in fen: String) -> Bool {
         fen.split(separator: " ").dropFirst().first != "b"
+    }
+
+    static func moveNumbering(in fen: String) -> MoveNumbering {
+        let fields = fen.split(separator: " ")
+        let firstFullmove = max(1, fields.dropFirst(5).first.flatMap { Int($0) } ?? 1)
+        let firstPlyOffset = fields.dropFirst().first == "b" ? 1 : 0
+        return MoveNumbering(firstFullmove: firstFullmove, firstPlyOffset: firstPlyOffset)
     }
 
     static func squares(from fen: String) -> [Character] {

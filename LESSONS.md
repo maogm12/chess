@@ -271,8 +271,13 @@ claiming a newly investigated incident. Add future lessons only with evidence.
 - Prevention: Use the FEN active color to offset the starting half-move and
   the sixth FEN field to seed the fullmove count. Prefix an opening Black move
   with three periods; increment the count after Black moves. Use the selected
-  saved line's FEN and notation when exporting a history branch.
-- Evidence: `ChessApp/GameViewModel.swift` (`pgn(for:)`), and the PGN
+  saved line's FEN and notation when exporting a history branch. Route both PGN
+  export and the on-screen history timeline through
+  `ChessPosition.moveNumbering(in:)`; do not maintain separate FEN parsers for
+  those two views.
+- Evidence: `ChessPosition.moveNumbering(in:)`,
+  `ChessApp/GameViewModel.swift` (`pgn(for:)`),
+  `ChessApp/GameViewController.swift` (`makeTimeline()`), and the PGN
   specification sections 8.2.2.2 and 16.1.3.6:
   https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm
 - Verification: Host-only checks compiling the actual export method reproduced
@@ -281,7 +286,9 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   Initial local simulator execution was blocked by Xcode 27.1 requiring
   CoreSimulator 1174.9.2 while 1171.7 was installed.
   Two XCTest regressions cover normal starts, both setup colors, later move
-  numbers, empty games, and selected branches after persistence. PR #20's
+  numbers, empty games, and selected branches after persistence.
+  `testMoveNumberingUsesFENActiveColorAndFullmove` also guards the shared helper's
+  White/Black offset and fullmove fallback. PR #20's
   final commit `f58b7b4` passed both CI suites, including all 48 iOS tests
   (run `38936221999`). When local infrastructure is unavailable, publish the
   PR with the limitation documented and check full CI before reporting
@@ -544,8 +551,10 @@ this file is for reusable project knowledge.
   default allowance as a failure. `setSwitch` now waits briefly for the
   requested value and retaps once, while still asserting the target value;
   the runner's bounded default allowance is 300 seconds, below its existing
-  360-second maximum. Neither adjustment relaxes a feature assertion. These
-  harness fixes still require their own exact-head CI run.
+  360-second maximum. Neither adjustment relaxes a feature assertion. Exact-head
+  PR #27 checks for follow-up `1ed42b3` passed: Engine, iOS 54/54, iPad E2E 32/32,
+  and iPhone E2E 32/32 after an evidence-based retry of a pre-test orientation
+  timeout. The post-merge run for `839ff22` also passed Engine and iOS 54/54.
 
 ## Account for automation time when checking timer pauses
 
@@ -669,6 +678,19 @@ this file is for reusable project knowledge.
   iPhone job passed all 32 E2E methods. The follow-up run exposed the clipped
   switch and stale-frame cases on both device families, while preserving the
   exact settings assertions.
+- Recurrence and cause: On 2026-11-10, the iPad E2E job again timed out after
+  requesting slider position 0.45, even though the failure screenshot showed
+  "Club · ≈2470 Elo" and the thumb near level 9. The accessibility hierarchy
+  still reported "12 of 20": `SettingsViewController.cellForRowAt` explicitly
+  set `UISlider.accessibilityValue` only when creating the cell, so changing the
+  native thumb did not refresh the published accessibility value.
+- Prevention and verification: Update the explicit accessibility value from the
+  same rounded skill used by the `.valueChanged` action, and cover the immediate
+  value and settings mutation in
+  `testBotSkillSliderAccessibilityTracksValueChanges`. Keep the E2E helper's
+  exact accepted-level assertion; do not relax it to accommodate stale product
+  accessibility state. GitHub E2E run `42862565877` supplied the failing iPad
+  log, hierarchy, screenshot and iPhone 32/32 control result.
 
 ## Wait for a popped navigation bar before tapping underlying Home controls
 
