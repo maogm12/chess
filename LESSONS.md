@@ -678,6 +678,19 @@ this file is for reusable project knowledge.
   iPhone job passed all 32 E2E methods. The follow-up run exposed the clipped
   switch and stale-frame cases on both device families, while preserving the
   exact settings assertions.
+- Recurrence and cause: On 2026-11-10, the iPad E2E job again timed out after
+  requesting slider position 0.45, even though the failure screenshot showed
+  "Club · ≈2470 Elo" and the thumb near level 9. The accessibility hierarchy
+  still reported "12 of 20": `SettingsViewController.cellForRowAt` explicitly
+  set `UISlider.accessibilityValue` only when creating the cell, so changing the
+  native thumb did not refresh the published accessibility value.
+- Prevention and verification: Update the explicit accessibility value from the
+  same rounded skill used by the `.valueChanged` action, and cover the immediate
+  value and settings mutation in
+  `testBotSkillSliderAccessibilityTracksValueChanges`. Keep the E2E helper's
+  exact accepted-level assertion; do not relax it to accommodate stale product
+  accessibility state. GitHub E2E run `42862565877` supplied the failing iPad
+  log, hierarchy, screenshot and iPhone 32/32 control result.
 
 ## Wait for a popped navigation bar before tapping underlying Home controls
 

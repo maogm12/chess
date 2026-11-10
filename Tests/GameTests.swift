@@ -171,6 +171,21 @@ final class GameTests: XCTestCase {
         }
     }
 
+    func testBotSkillSliderAccessibilityTracksValueChanges() async throws {
+        let (game, _) = try await makeGame()
+        let settings = SettingsViewController(game: game)
+        settings.loadViewIfNeeded()
+        let table = try XCTUnwrap(descendants(of: settings.view).first { $0 is UITableView } as? UITableView)
+        let cell = settings.tableView(table, cellForRowAt: IndexPath(row: 1, section: 1))
+        let slider = try XCTUnwrap(descendants(of: cell).first { $0 is UISlider } as? UISlider)
+
+        XCTAssertEqual(slider.accessibilityValue, "\(game.settings.skill) of 20")
+        slider.value = 9
+        slider.sendActions(for: .valueChanged)
+        XCTAssertEqual(game.settings.skill, 9)
+        XCTAssertEqual(slider.accessibilityValue, "9 of 20")
+    }
+
     func testForkChessIdentityAndPGNBranding() async throws {
         XCTAssertEqual(Bundle.main.bundleIdentifier, "com.maogm12.forkchess")
         XCTAssertEqual(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String, "ForkChess")
