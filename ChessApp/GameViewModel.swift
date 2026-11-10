@@ -697,11 +697,10 @@ final class GameViewModel: ObservableObject {
         var output = "[Event \"ForkChess practice\"]\n[Date \"\(date)\"]\n[White \"\(white)\"]\n[Black \"\(black)\"]\n[Result \"\(record.result)\"]\n"
         if record.baseFEN != Self.startFEN { output += "[SetUp \"1\"]\n[FEN \"\(record.baseFEN)\"]\n" }
         output += "\n"
-        let startingMove = max(1, Int(record.baseFEN.split(separator: " ").dropFirst(5).first ?? "") ?? 1)
-        let startingPly = ChessPosition.whiteToMove(in: record.baseFEN) ? 0 : 1
+        let numbering = ChessPosition.moveNumbering(in: record.baseFEN)
         for (i, move) in record.notation.enumerated() {
-            let ply = startingPly + i
-            let number = startingMove + ply / 2
+            let ply = numbering.firstPlyOffset + i
+            let number = numbering.firstFullmove + ply / 2
             if ply.isMultiple(of: 2) { output += "\(number). " }
             else if i == 0 { output += "\(number)... " }
             output += move + " "

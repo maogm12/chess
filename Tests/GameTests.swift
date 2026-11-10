@@ -503,6 +503,18 @@ final class GameTests: XCTestCase {
         }
     }
 
+    func testMoveNumberingUsesFENActiveColorAndFullmove() {
+        XCTAssertEqual(ChessPosition.moveNumbering(in: GameViewModel.startFEN),
+                       .init(firstFullmove: 1, firstPlyOffset: 0))
+        XCTAssertEqual(ChessPosition.moveNumbering(in: "7k/8/8/8/8/8/8/KR6 w - - 0 23"),
+                       .init(firstFullmove: 23, firstPlyOffset: 0))
+        XCTAssertEqual(ChessPosition.moveNumbering(in: "7k/8/8/8/8/8/8/KR6 b - - 0 23"),
+                       .init(firstFullmove: 23, firstPlyOffset: 1))
+        XCTAssertEqual(ChessPosition.moveNumbering(in: "7k/8/8/8/8/8/8/KR6 b - - 0 0"),
+                       .init(firstFullmove: 1, firstPlyOffset: 1),
+                       "Invalid saved fullmove values fall back to move 1")
+    }
+
     func testPGNExportPreservesSetupNumberingAcrossSavedBranches() async throws {
         let (game, _) = try await makeGame()
         var record = SavedGame(playerWhite: false, isPuzzle: true)
