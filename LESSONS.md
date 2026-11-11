@@ -154,6 +154,31 @@ claiming a newly investigated incident. Add future lessons only with evidence.
   of partial stderr when the deadline expires. These use real Python subprocesses
   with simctl/Xcode stubs; they do not exercise a real simulator or app UI.
 
+## Read simulator versions from runtime metadata
+
+- Date and symptom: On 2026-11-11, the installed simulator inventory included
+  `com.apple.CoreSimulator.SimRuntime.iOS-27-2-iPhone19-4`.
+  `Tests/run-ios-tests.sh` raised `ValueError` on `iPhone19` before XCTest.
+- Cause: The integration runner split the identifier at hyphens and converted
+  every component to an integer. Runtime identifiers can include device-specific
+  suffixes; they are lookup keys, not numeric versions.
+- Prevention: Join available devices to available iOS runtimes by identifier and
+  sort by the runtime's `version` metadata. Preserve the existing iPhone preference
+  only within the newest version. Skip devices whose runtime metadata is absent
+  or unavailable. `Tests/run-e2e-tests.sh` already uses runtime version metadata;
+  keep its separate isolated-simulator ownership.
+- Evidence: PR #29, `Tests/run-ios-tests.sh`, `Tests/test-ios-runner.py`, and the installed
+  `simctl list devices available --json` inventory. The subprocess suite reproduced
+  two failures before the fix, including the real device-specific identifier.
+- Verification: Five runner tests cover the suffix, numeric version ordering,
+  same-version preference, unavailable/unknown runtimes and devices, iPad-only
+  inventory, and preservation of XCTest exit 65 and logs. These stubbed checks
+  do not establish real simulator execution. The selector also completed against
+  the captured local inventory. Separately, the build/launch and full integration
+  suite passed 56/56 via XcodeBuildMCP on iPhone 18 Pro / iOS 27.2; the engine
+  suite and existing 22 E2E runner tests passed. CI exercises the complete shell
+  entry point; its results are recorded in the maintenance PR.
+
 ## Share FEN placement decoding while preserving engine piece identities
 
 - Date and problem: On 2026-10-14, maintenance found duplicate FEN rank/file
@@ -415,6 +440,18 @@ this file is for reusable project knowledge.
   checks redo visibility, and checks rated rows separately. UIWindow captures
   document the unselected and selected layouts; frame assertions establish
   layout stability that still images alone cannot prove.
+- Maintenance, 2026-11-11: PR #29's first integration CI run (`43065950393`)
+  failed only the redo-visibility assertion in
+  `testUIKitMoveSelectionRedoAndBranchPages`. That test called `updateView()`,
+  which schedules a table reload, then searched existing subviews without
+  flushing layout. Engine/model idle does not establish that reloaded table
+  cells have been configured. Check the model's redo eligibility and call
+  `screen.view.layoutIfNeeded()` before inspecting the reloaded UI, as the
+  geometry tests already do. Keep the hidden-state and real redo-action
+  assertions. The omitted layout synchronization is confirmed in the test;
+  the CI run did not capture enough state to prove it was the sole trigger.
+  After adding the synchronization, the focused test passed 1/1 and the full
+  integration suite passed 56/56 on iPhone 18 Pro / iOS 27.2.
 
 ## Reveal the history tip after returning from review
 

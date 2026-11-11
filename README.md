@@ -174,6 +174,10 @@ on pushes to `main`, and manually from the Actions tab. Separate jobs run the
 engine suite and all simulator integration tests on an ARM64 `macos-26` runner
 with Xcode 26.6. The simulator job selects an available iPhone from the latest
 installed iOS runtime and disables code signing. No signing credentials are needed.
+Selection reads the runtime's numeric `version` metadata; runtime identifiers can
+contain device-specific suffixes. Available iPhones must match an available iOS runtime.
+`python3 Tests/test-ios-runner.py` checks this selection and test-failure propagation
+with subprocess stubs; it does not launch a simulator or replace integration tests.
 
 Each run keeps its logs, the `.xcresult` bundle, and exported XCTest image
 attachments as downloadable artifacts for 14 days, including on test failures.
