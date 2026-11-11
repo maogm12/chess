@@ -17,17 +17,24 @@ fi
 
 xcodebuild -version
 xcrun simctl list devices available --json > "$output_dir/simulators.json"
-simulator_id="$(python3 - "$output_dir/simulators.json" <<'PY'
+xcrun simctl list runtimes --json > "$output_dir/runtimes.json"
+simulator_id="$(python3 - "$output_dir/simulators.json" "$output_dir/runtimes.json" <<'PY'
 import json
 import sys
 
 with open(sys.argv[1]) as source:
     devices = json.load(source)["devices"]
+with open(sys.argv[2]) as source:
+    runtimes = {
+        runtime["identifier"]: tuple(int(part) for part in runtime["version"].split("."))
+        for runtime in json.load(source)["runtimes"]
+        if runtime.get("isAvailable") and ".iOS-" in runtime["identifier"]
+    }
 candidates = []
 for runtime, entries in devices.items():
-    if ".iOS-" not in runtime:
+    if runtime not in runtimes:
         continue
-    version = tuple(int(part) for part in runtime.split(".iOS-")[1].split("-"))
+    version = runtimes[runtime]
     for device in entries:
         if device.get("isAvailable") and device["name"].startswith("iPhone"):
             candidates.append((version, device["name"] == "iPhone 17 Pro", device))
